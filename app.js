@@ -1,5 +1,3 @@
-const e = React.createElement;
-
 const API_KEY = 'your-api-key-here'; // Replace with your actual API key
 
 function App() {
@@ -33,20 +31,20 @@ function App() {
     }
   };
 
-  return e('div', null, [
-    e('h1', { key: 'title' }, "OptiLog - AI-Enhanced Maritime Reporting System"),
-    e('form', { key: 'form', onSubmit: handleSubmit }, [
-      e('input', {
+  return React.createElement('div', null, [
+    React.createElement('h1', { key: 'title' }, "OptiLog - AI-Enhanced Maritime Reporting System"),
+    React.createElement('form', { key: 'form', onSubmit: handleSubmit }, [
+      React.createElement('input', {
         key: 'input',
         type: 'text',
         value: message,
         onChange: (e) => setMessage(e.target.value),
         placeholder: "Type your message here"
       }),
-      e('button', { key: 'submit', type: 'submit' }, "Send")
+      React.createElement('button', { key: 'submit', type: 'submit' }, "Send")
     ]),
-    e('div', { key: 'response' }, response)
+    React.createElement('div', { key: 'response' }, response)
   ]);
 }
 
-ReactDOM.render(e(App), document.getElementById('root'));
+ReactDOM.render(React.createElement(App), document.getElementById('root'));
