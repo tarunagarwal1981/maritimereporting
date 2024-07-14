@@ -1,5 +1,3 @@
-console.log('Script started');
-
 const e = React.createElement;
 
 const API_KEY = 'your-api-key-here'; // Replace with your actual API key
@@ -51,10 +49,4 @@ function App() {
   ]);
 }
 
-console.log('About to render App component');
-try {
-  ReactDOM.render(e(App), document.getElementById('root'));
-  console.log('App rendered successfully');
-} catch (error) {
-  console.error('Error rendering App:', error);
-}
+ReactDOM.render(e(App), document.getElementById('root'));
