@@ -1,49 +1,60 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ReportForm } from './ReportForm';
-import { Chatbot } from './Chatbot';
+console.log('Script started');
 
-const App = () => {
-    const [reportHistory, setReportHistory] = useState([]);
-    const [currentReportType, setCurrentReportType] = useState(null);
-    const [messages, setMessages] = useState([]);
+const e = React.createElement;
 
-    const handleSendMessage = async (message) => {
-        const updatedMessages = [...messages, { role: 'user', content: message }];
-        setMessages(updatedMessages);
-        
-        try {
-            const aiResponse = await getAIResponse(message, reportHistory);
-            setMessages([...updatedMessages, { role: 'assistant', content: aiResponse }]);
-            
-            const reportTypeMatch = aiResponse.match(/create a (.*?) report/i);
-            if (reportTypeMatch) {
-                setCurrentReportType(reportTypeMatch[1]);
-            }
-        } catch (error) {
-            console.error('Error getting AI response:', error);
-            setMessages([...updatedMessages, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
-        }
-    };
+const API_KEY = 'your-api-key-here'; // Replace with your actual API key
 
-    const handleSubmitReport = () => {
-        console.log('Report submitted:', currentReportType);
-        setReportHistory([...reportHistory, currentReportType]);
-        setCurrentReportType(null);
-    };
+function App() {
+  const [message, setMessage] = React.useState('');
+  const [response, setResponse] = React.useState('');
 
-    return (
-        <div className="app-container">
-            <div className="form-section">
-                <h1>OptiLog - AI-Enhanced Maritime Reporting System</h1>
-                {currentReportType ? (
-                    <ReportForm reportType={currentReportType} onSubmit={handleSubmitReport} />
-                ) : (
-                    <p>Please use the AI Assistant to initiate a report.</p>
-                )}
-            </div>
-            <Chatbot messages={messages} onSendMessage={handleSendMessage} />
-        </div>
-    );
-};
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const result = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: "You are an AI assistant for a maritime reporting system." },
+            { role: "user", content: message }
+          ],
+          max_tokens: 300,
+          temperature: 1.0,
+        })
+      });
+      const data = await result.json();
+      setResponse(data.choices[0].message.content);
+    } catch (error) {
+      console.error('Error:', error);
+      setResponse("An error occurred while fetching the response.");
+    }
+  };
 
-export default App;
+  return e('div', null, [
+    e('h1', { key: 'title' }, "OptiLog - AI-Enhanced Maritime Reporting System"),
+    e('form', { key: 'form', onSubmit: handleSubmit }, [
+      e('input', {
+        key: 'input',
+        type: 'text',
+        value: message,
+        onChange: (e) => setMessage(e.target.value),
+        placeholder: "Type your message here"
+      }),
+      e('button', { key: 'submit', type: 'submit' }, "Send")
+    ]),
+    e('div', { key: 'response' }, response)
+  ]);
+}
+
+console.log('About to render App component');
+try {
+  ReactDOM.render(e(App), document.getElementById('root'));
+  console.log('App rendered successfully');
+} catch (error) {
+  console.error('Error rendering App:', error);
+}
