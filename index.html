@@ -102,14 +102,12 @@
     </div>
 
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="config.js"></script> <!-- Make sure this file is generated during deployment -->
     <script>
         document.getElementById('reportForm').addEventListener('submit', function(event) {
             event.preventDefault();
             alert('Report submitted!');
         });
-
-        // Use the correct secret name
-        const openai_api_key = 'OPENAIAPIKEY';
 
         async function sendMessage(message) {
             try {
@@ -121,7 +119,7 @@
                     ]
                 }, {
                     headers: {
-                        'Authorization': `Bearer ${openai_api_key}`,
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`, // Use the key from config.js
                         'Content-Type': 'application/json'
                     }
                 });
