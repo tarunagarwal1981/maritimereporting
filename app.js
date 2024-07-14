@@ -31,6 +31,7 @@ const getAIResponse = async (userInput, lastReports) => {
     }
 };
 
+// Define ReportForm component
 const ReportForm = ({ reportType, onSubmit }) => {
     return (
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
@@ -44,6 +45,7 @@ const ReportForm = ({ reportType, onSubmit }) => {
     );
 };
 
+// Define Chatbot component
 const Chatbot = ({ messages, onSendMessage }) => {
     const [input, setInput] = useState('');
     const messagesEndRef = useRef(null);
@@ -87,6 +89,7 @@ const Chatbot = ({ messages, onSendMessage }) => {
     );
 };
 
+// Define App component
 const App = () => {
     console.log('App component rendered');
     const [reportHistory, setReportHistory] = useState([]);
