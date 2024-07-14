@@ -11,13 +11,18 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3  # Updated to latest version
+      uses: actions/checkout@v3  # Ensure latest version is used
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3  # Ensure the correct version of Node.js
+      with:
+        node-version: '20'  # Explicitly set the Node.js version
 
     - name: Create config.js
       run: echo "const OPENAI_API_KEY = '${{ secrets.OPENAIAPIKEY }}';" > config.js
 
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4  # Updated to latest version
+      uses: peaceiris/actions-gh-pages@v4  # Ensure latest version is used
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./
