@@ -63,30 +63,21 @@
 </head>
 <body>
     <div class="container">
-        <div class="report-form">
+        <div class="report-form" id="reportFormContainer">
             <h2>Maritime Report</h2>
             <form id="reportForm">
                 <div class="form-group">
-                    <label for="vesselName">Vessel Name:</label>
-                    <input type="text" id="vesselName" name="vesselName">
-                </div>
-                <div class="form-group">
-                    <label for="imoNumber">IMO Number:</label>
-                    <input type="text" id="imoNumber" name="imoNumber">
-                </div>
-                <div class="form-group">
-                    <label for="reportType">Report Type:</label>
-                    <select id="reportType" name="reportType">
-                        <option value="arrival">Arrival</option>
-                        <option value="departure">Departure</option>
-                        <option value="noon">Noon Report</option>
-                        <option value="incident">Incident Report</option>
+                    <label for="vesselType">Vessel Type:</label>
+                    <select id="vesselType" name="vesselType">
+                        <option value="">Select Vessel Type</option>
+                        <option value="Oil Tanker">Oil Tanker</option>
+                        <option value="LPG Tanker">LPG Tanker</option>
+                        <option value="LNG Tanker">LNG Tanker</option>
+                        <option value="Container">Container</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="details">Report Details:</label>
-                    <textarea id="details" name="details" rows="4"></textarea>
-                </div>
+                <!-- Dynamic sections will be inserted here -->
+                <div id="dynamicSections"></div>
                 <button type="submit">Submit Report</button>
             </form>
         </div>
@@ -103,12 +94,174 @@
 
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script>
-        // Inline configuration
+        // Configuration for dynamic form fields
+        const SECTION_FIELDS = {
+            "Vessel Data": ["Vessel Name", "Vessel IMO", "Vessel Type"],
+            "Voyage Data": ["Local Date", "Local Time", "UTC Offset", "Voyage ID", "Segment ID", "From Port", "To Port"],
+            "Event Data": ["Event Type", "Time Elapsed (hours)", "Sailing Time (hours)", "Anchor Time (hours)", "Ice Time (hours)", "Maneuvering (hours)", "Loading/Unloading (hours)", "Drifting (hours)"],
+            "Position": ["Latitude Degrees", "Latitude Minutes", "Latitude Direction", "Longitude Degrees", "Longitude Minutes", "Longitude Direction"],
+            "Cargo": {
+                "Oil Tanker": ["Cargo Weight (mt)"],
+                "LPG Tanker": ["Cargo Volume (m3)"],
+                "LNG Tanker": ["Cargo Volume (m3)"]
+            },
+            "Fuel Consumption": {
+                "Oil Tanker": {
+                    "Main Engine": ["ME LFO (mt)", "ME MGO (mt)", "ME LNG (mt)", "ME Other (mt)", "ME Other Fuel Type"],
+                    "Auxiliary Engines": ["AE LFO (mt)", "AE MGO (mt)", "AE LNG (mt)", "AE Other (mt)", "AE Other Fuel Type"],
+                    "Boilers": ["Boiler LFO (mt)", "Boiler MGO (mt)", "Boiler LNG (mt)", "Boiler Other (mt)", "Boiler Other Fuel Type"],
+                    "IGG": ["IGG LFO (mt)", "IGG MGO (mt)", "IGG LNG (mt)", "IGG Other (mt)", "IGG Other Fuel Type"],
+                    "Incinerator": ["Incinerator MGO (mt)"]
+                },
+                "LPG Tanker": {
+                    "Main Engine": ["ME LFO (mt)", "ME MGO (mt)", "ME LNG (mt)", "ME LPG Propane (mt)", "ME LPG Butane (mt)", "ME Other (mt)", "ME Other Fuel Type"],
+                    "Auxiliary Engines": ["AE LFO (mt)", "AE MGO (mt)", "AE LNG (mt)", "AE LPG Propane (mt)", "AE LPG Butane (mt)", "AE Other (mt)", "AE Other Fuel Type"],
+                    "Boilers": ["Boiler LFO (mt)", "Boiler MGO (mt)", "Boiler LNG (mt)", "Boiler LPG Propane (mt)", "Boiler LPG Butane (mt)", "Boiler Other (mt)", "Boiler Other Fuel Type"],
+                    "IGG": ["IGG LFO (mt)", "IGG MGO (mt)", "IGG LNG (mt)", "IGG LPG Propane (mt)", "IGG LPG Butane (mt)", "IGG Other (mt)", "IGG Other Fuel Type"],
+                    "Incinerator": ["Incinerator MGO (mt)"]
+                },
+                "LNG Tanker": {
+                    "Main Engine": ["ME LFO (mt)", "ME MGO (mt)", "ME LNG (mt)", "ME Other (mt)", "ME Other Fuel Type"],
+                    "Auxiliary Engines": ["AE LFO (mt)", "AE MGO (mt)", "AE LNG (mt)", "AE Other (mt)", "AE Other Fuel Type"],
+                    "Boilers": ["Boiler LFO (mt)", "Boiler MGO (mt)", "Boiler LNG (mt)", "Boiler Other (mt)", "Boiler Other Fuel Type"],
+                    "IGG": ["IGG LFO (mt)", "IGG MGO (mt)", "IGG LNG (mt)", "IGG Other (mt)", "IGG Other Fuel Type"],
+                    "GCU": ["GCU LFO (mt)", "GCU MGO (mt)", "GCU LNG (mt)", "GCU Other (mt)", "GCU Other Fuel Type"],
+                    "Incinerator": ["Incinerator MGO (mt)"]
+                }
+            },
+            "ROB": ["LFO ROB (mt)", "MGO ROB (mt)", "LNG ROB (mt)", "Other ROB (mt)", "Other Fuel Type ROB", "Total Fuel ROB (mt)"],
+            "Fuel Allocation": {
+                "Oil Tanker": {
+                    "Cargo Heating": [
+                        "Cargo Heating HFO (mt)", 
+                        "Cargo Heating MGO (mt)", 
+                        "Cargo Heating LNG (mt)", 
+                        "Cargo Heating Other (mt)", 
+                        "Cargo Heating Other Fuel Type"
+                    ],
+                    "Cargo Discharging": [
+                        "Cargo Discharging HFO (mt)",
+                        "Cargo Discharging MGO (mt)",
+                        "Cargo Discharging LNG (mt)",
+                        "Cargo Discharging Other (mt)",
+                        "Cargo Discharging Other Fuel Type"
+                    ],
+                    "Engine Driven Cargo Pump": ["Engine Driven Cargo Pump MGO (mt)"]
+                },
+                "LPG Tanker": {
+                    "Cargo Cooling": [
+                        "Cargo Cooling LFO (mt)", "Cargo Cooling MGO (mt)", "Cargo Cooling LNG (mt)",
+                        "Cargo Cooling LPG Propane (mt)", "Cargo Cooling LPG Butane (mt)",
+                        "Cargo Cooling Other (mt)", "Cargo Cooling Other Fuel Type",
+                        "Cargo Cooling Work (kWh)", "Cargo Cooling SFOC (g/kWh)"
+                    ],
+                    "Discharge Pump": [
+                        "Discharge Pump LFO (mt)", "Discharge Pump MGO (mt)", "Discharge Pump LNG (mt)",
+                        "Discharge Pump LPG Propane (mt)", "Discharge Pump LPG Butane (mt)",
+                        "Discharge Pump Other (mt)", "Discharge Pump Other Fuel Type",
+                        "Discharge Pump Work (kWh)", "Discharge Pump SFOC (g/kWh)"
+                    ],
+                    "Shore-Side Electricity": ["Shore-Side Electricity Work (kWh)"]
+                },
+                "LNG Tanker": {
+                    "Cargo Cooling": [
+                        "Cargo Cooling LFO (mt)", "Cargo Cooling MGO (mt)", "Cargo Cooling LNG (mt)",
+                        "Cargo Cooling Other (mt)", "Cargo Cooling Other Fuel Type",
+                        "Cargo Cooling Work (kWh)", "Cargo Cooling SFOC (g/kWh)"
+                    ],
+                    "Discharge Pump": [
+                        "Discharge Pump LFO (mt)", "Discharge Pump MGO (mt)", "Discharge Pump LNG (mt)",
+                        "Discharge Pump Other (mt)", "Discharge Pump Other Fuel Type",
+                        "Discharge Pump Work (kWh)", "Discharge Pump SFOC (g/kWh)"
+                    ],
+                    "Shore-Side Electricity": ["Shore-Side Electricity Work (kWh)"]
+                }
+            },
+            "Machinery": {
+                "Main Engine": ["ME Load (kW)", "ME Load Percentage (%)", "ME Speed (RPM)", "ME Propeller Pitch (m)", "ME Propeller Pitch Ratio", "ME Shaft Generator Power (kW)", "ME Charge Air Inlet Temp (°C)", "ME Scav. Air Pressure (bar)", "ME SFOC (g/kWh)", "ME SFOC ISO Corrected (g/kWh)"],
+                "Auxiliary Engines": {
+                    "Auxiliary Engine 1": ["AE1 Load (kW)", "AE1 Charge Air Inlet Temp (°C)", "AE1 Charge Air Pressure (bar)", "AE1 SFOC (g/kWh)", "AE1 SFOC ISO Corrected (g/kWh)"],
+                    "Auxiliary Engine 2": ["AE2 Load (kW)", "AE2 Charge Air Inlet Temp (°C)", "AE2 Charge Air Pressure (bar)", "AE2 SFOC (g/kWh)", "AE2 SFOC ISO Corrected (g/kWh)"],
+                    "Auxiliary Engine 3": ["AE3 Load (kW)", "AE3 Charge Air Inlet Temp (°C)", "AE3 Charge Air Pressure (bar)", "AE3 SFOC (g/kWh)", "AE3 SFOC ISO Corrected (g/kWh)"]
+                }
+            },
+            "Weather": {
+                "Wind": ["Wind Direction (degrees)", "Wind Speed (knots)", "Wind Force (Beaufort)"],
+                "Sea State": ["Sea State Direction (degrees)", "Sea State Force (Douglas scale)", "Sea State Period (seconds)"],
+                "Swell": ["Swell Direction (degrees)", "Swell Height (meters)", "Swell Period (seconds)"],
+                "Current": ["Current Direction (degrees)", "Current Speed (knots)"],
+                "Temperature": ["Air Temperature (°C)", "Sea Temperature (°C)"]
+            },
+            "Draft": {
+                "Actual": ["Actual Forward Draft (m)", "Actual Aft Draft (m)", "Displacement (mt)", "Water Depth (m)"]
+            },
+            "Bunker": [
+                "Bunker Type",
+                "Quantity (mt)",
+                "Density at 15°C (kg/m3)",
+                "Viscosity at 50°C (cSt)",
+                "Flash Point (°C)",
+                "Sulphur Content (%)",
+                "Water Content (%)",
+                "Ash Content (%)",
+                "Vanadium (mg/kg)",
+                "Aluminium + Silicon (mg/kg)",
+                "Pour Point (°C)",
+                "Supplier Name",
+                "Delivery Date",
+                "Delivery Port",
+                "BDN Number"
+            ]
+        };
+
+        // Function to dynamically generate form fields based on vessel type
+        function generateFormFields(vesselType) {
+            const dynamicSections = document.getElementById('dynamicSections');
+            dynamicSections.innerHTML = ''; // Clear previous fields
+
+            for (const section in SECTION_FIELDS) {
+                const fields = SECTION_FIELDS[section];
+                let sectionFields = [];
+
+                if (typeof fields === 'object' && !Array.isArray(fields)) {
+                    if (fields[vesselType]) {
+                        sectionFields = fields[vesselType];
+                    }
+                } else {
+                    sectionFields = fields;
+                }
+
+                if (sectionFields.length > 0) {
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.classList.add('form-section');
+                    sectionDiv.innerHTML = `<h3>${section}</h3>`;
+
+                    sectionFields.forEach(field => {
+                        const formGroup = document.createElement('div');
+                        formGroup.classList.add('form-group');
+                        formGroup.innerHTML = `
+                            <label for="${field}">${field}:</label>
+                            <input type="text" id="${field}" name="${field}">
+                        `;
+                        sectionDiv.appendChild(formGroup);
+                    });
+
+                    dynamicSections.appendChild(sectionDiv);
+                }
+            }
+        }
+
+        document.getElementById('vesselType').addEventListener('change', function(event) {
+            const vesselType = event.target.value;
+            generateFormFields(vesselType);
+        });
+
+        // Inline configuration for OpenAI API
         const config = {
             OPENAI_API_KEY: 'OPENAIAPIKEY'
         };
 
-        // Debug log
+        // Debug log for API key (last 4 characters for verification)
         console.log("API Key (last 4 characters):", config.OPENAI_API_KEY.slice(-4));
 
         document.getElementById('reportForm').addEventListener('submit', function(event) {
