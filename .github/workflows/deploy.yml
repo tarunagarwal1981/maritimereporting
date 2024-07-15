@@ -2,27 +2,36 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main  # Triggers the workflow on push to the main branch
+    branches: [ main ]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3  # Ensure latest version is used
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v3  # Ensure the correct version of Node.js
+    - name: Checkout
+      uses: actions/checkout@v4
       with:
-        node-version: '20'  # Explicitly set the Node.js version
+        persist-credentials: false
 
-    - name: Create config.js
-      run: echo "const OPENAI_API_KEY = '${{ secrets.OPENAIAPIKEY }}';" > config.js
-
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4  # Ensure latest version is used
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./
+        node-version: '20'
+
+    - name: Install Dependencies
+      run: |
+        npm install
+
+    - name: Build
+      env:
+        OPENAIAPIKEY: ${{ secrets.OPENAIAPIKEY }}
+      run: |
+        # Add your build commands here
+        # For example: npm run build
+
+    - name: Deploy
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        branch: gh-pages
+        folder: .
+        token: ${{ secrets.GITHUB_TOKEN }}
