@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OptiLog - Interactive Maritime Reporting System</title>
+    <title>OptiLog - Advanced Interactive Maritime Reporting System</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         body, html {
@@ -140,25 +140,17 @@
             background-color: #2980b9;
         }
         .field-prompt {
-            font-size: 0.8em;
+            font-size: 11px;
             color: #666;
-            margin-bottom: 2px;
-        }
-        .small-warning {
-            font-size: 8px;
-            color: #b20000;
-            background-color: #ffe5e5;
-            border-radius: 5px;
-            padding: 5px;
+            margin-top: 2px;
         }
         .info-message {
-            font-size: 12px;
+            font-size: 11px;
             color: #0066cc;
             background-color: #e6f2ff;
             padding: 5px;
             border-radius: 3px;
             margin-top: 5px;
-            margin-bottom: 10px;
             display: inline-block;
         }
     </style>
@@ -284,6 +276,7 @@
         let currentSectionIndex = 0;
         let currentFieldIndex = 0;
         let conversationState = 'start';
+        let userExpandedSections = new Set();
 
         const chatbotContainer = document.getElementById('chatMessages');
 
@@ -296,9 +289,40 @@
             chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
         }
 
+        function generateRandomLatLong() {
+            const lat = Math.random() * 180 - 90;
+            const long = Math.random() * 360 - 180;
+            return {
+                latDeg: Math.abs(Math.floor(lat)),
+                latMin: Math.abs((lat % 1) * 60).toFixed(2),
+                latDir: lat >= 0 ? 'N' : 'S',
+                longDeg: Math.abs(Math.floor(long)),
+                longMin: Math.abs((long % 1) * 60).toFixed(2),
+                longDir: long >= 0 ? 'E' : 'W'
+            };
+        }
+
+        function generateRandomConsumption(min, max) {
+            return (Math.random() * (max - min) + min).toFixed(1);
+        }
+
+        function generateRandomVesselName() {
+            const prefixes = ["MV", "SS", "MT"];
+            const names = ["Horizon", "Voyager", "Pioneer", "Adventurer", "Explorer", "Discovery", "Navigator", "Endeavour", "Challenger", "Trailblazer"];
+            return `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${names[Math.floor(Math.random() * names.length)]}`;
+        }
+
+        function generateRandomIMO() {
+            return Math.floor(1000000 + Math.random() * 9000000).toString();
+        }
+
         function generateFormFields(vesselType) {
             const dynamicSections = document.getElementById('dynamicSections');
             dynamicSections.innerHTML = '';
+
+            const randomPosition = generateRandomLatLong();
+            const randomVesselName = generateRandomVesselName();
+            const randomIMO = generateRandomIMO();
 
             for (const section in SECTION_FIELDS) {
                 const fields = SECTION_FIELDS[section];
@@ -330,7 +354,7 @@
                     sectionDiv.appendChild(sectionHeader);
                     sectionDiv.appendChild(sectionContent);
 
-                    const createFields = (fields) => {
+                    const createFields = (fields, parentSection) => {
                         let formRow;
                         fields.forEach((field, index) => {
                             if (index % 3 === 0) {
@@ -341,22 +365,52 @@
 
                             const formGroup = document.createElement('div');
                             formGroup.classList.add('form-group');
+                            const fieldId = field.replace(/\s+/g, '-').toLowerCase();
+                            let value = '';
+                            let infoMessage = '';
+
+                            if (section === 'Position' && field.includes('Latitude')) {
+                                if (field.includes('Degrees')) value = randomPosition.latDeg;
+                                else if (field.includes('Minutes')) value = randomPosition.latMin;
+                                else if (field.includes('Direction')) value = randomPosition.latDir;
+                                infoMessage = 'Current AIS position';
+                            } else if (section === 'Position' && field.includes('Longitude')) {
+                                if (field.includes('Degrees')) value = randomPosition.longDeg;
+                                else if (field.includes('Minutes')) value = randomPosition.longMin;
+                                else if (field.includes('Direction')) value = randomPosition.longDir;
+                                infoMessage = 'Current AIS position';
+                            } else if (field === 'Vessel Name') {
+                                value = randomVesselName;
+                            } else if (field === 'Vessel IMO') {
+                                value = randomIMO;
+                            } else if (field.includes('LFO')) {
+                                if (parentSection === 'Main Engine') {
+                                    value = generateRandomConsumption(20, 25);
+                                } else if (parentSection === 'Auxiliary Engines') {
+                                    value = generateRandomConsumption(2, 3);
+                                } else if (parentSection === 'Boilers') {
+                                    value = generateRandomConsumption(1, 2);
+                                }
+                                infoMessage = 'MFM figures since last report';
+                            }
+
                             formGroup.innerHTML = `
-                                <label for="${field.replace(/\s+/g, '-').toLowerCase()}">${field}:</label>
-                                <input type="text" id="${field.replace(/\s+/g, '-').toLowerCase()}" name="${field}">
+                                <label for="${fieldId}">${field}:</label>
+                                <input type="text" id="${fieldId}" name="${field}" value="${value}">
+                                ${infoMessage ? `<div class="info-message">${infoMessage}</div>` : ''}
                             `;
                             formRow.appendChild(formGroup);
                         });
                     };
 
                     if (Array.isArray(sectionFields)) {
-                        createFields(sectionFields);
+                        createFields(sectionFields, section);
                     } else {
                         for (const subsection in sectionFields) {
                             const subsectionDiv = document.createElement('div');
                             subsectionDiv.innerHTML = `<h4>${subsection}</h4>`;
                             sectionContent.appendChild(subsectionDiv);
-                            createFields(sectionFields[subsection]);
+                            createFields(sectionFields[subsection], subsection);
                         }
                     }
 
@@ -367,10 +421,43 @@
 
         function toggleSection(section) {
             section.classList.toggle('expanded');
+            if (section.classList.contains('expanded')) {
+                userExpandedSections.add(section.id);
+            } else {
+                userExpandedSections.delete(section.id);
+            }
+        }
+
+        function expandSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section && !section.classList.contains('expanded')) {
+                section.classList.add('expanded');
+            }
+        }
+
+        function collapseSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section && section.classList.contains('expanded') && !userExpandedSections.has(sectionId)) {
+                section.classList.remove('expanded');
+            }
         }
 
         async function handleUserInput(userInput) {
             addChatbotMessage(userInput, true);
+
+            if (userInput.toLowerCase().startsWith('change value of')) {
+                const parts = userInput.split(' to ');
+                if (parts.length === 2) {
+                    const fieldName = parts[0].replace('change value of ', '').trim();
+                    const newValue = parts[1].trim();
+                    changeFieldValue(fieldName, newValue);
+                    addChatbotMessage(`I've updated the value of ${fieldName} to ${newValue}. Let's continue with the next field.`);
+                    askNextField();
+                } else {
+                    addChatbotMessage("I'm sorry, I didn't understand that. Please use the format 'change value of [field name] to [new value]'.");
+                }
+                return;
+            }
 
             switch (conversationState) {
                 case 'start':
@@ -417,7 +504,7 @@
 
         function askNextField() {
             const sections = Object.keys(SECTION_FIELDS);
-            if (currentSectionIndex < sections.length) {
+            while (currentSectionIndex < sections.length) {
                 currentSection = sections[currentSectionIndex];
                 let fields = SECTION_FIELDS[currentSection];
                 
@@ -425,20 +512,24 @@
                     fields = fields[currentVesselType] || Object.values(fields).flat();
                 }
 
-                if (currentFieldIndex < fields.length) {
+                while (currentFieldIndex < fields.length) {
                     currentField = fields[currentFieldIndex];
-                    addChatbotMessage(`Please provide the ${currentField}:`);
-                    expandSection(currentSection.replace(/\s+/g, '-').toLowerCase());
+                    const fieldId = currentField.replace(/\s+/g, '-').toLowerCase();
+                    const inputElement = document.getElementById(fieldId);
+                    
+                    if (inputElement && !inputElement.value) {
+                        addChatbotMessage(`Please provide the ${currentField}:`);
+                        expandSection(currentSection.replace(/\s+/g, '-').toLowerCase());
+                        return;
+                    }
                     currentFieldIndex++;
-                } else {
-                    currentSectionIndex++;
-                    currentFieldIndex = 0;
-                    askNextField();
                 }
-            } else {
-                addChatbotMessage("Great job! You've completed all the fields. Would you like to submit the report now?");
-                conversationState = 'confirm_submit';
+                collapseSection(currentSection.replace(/\s+/g, '-').toLowerCase());
+                currentSectionIndex++;
+                currentFieldIndex = 0;
             }
+            addChatbotMessage("Great job! You've completed all the fields. Would you like to submit the report now?");
+            conversationState = 'confirm_submit';
         }
 
         function fillFormField(field, value) {
@@ -449,11 +540,29 @@
             }
         }
 
-        function expandSection(sectionId) {
-            const section = document.getElementById(sectionId);
-            if (section && !section.classList.contains('expanded')) {
-                section.classList.add('expanded');
+        function changeFieldValue(fieldName, newValue) {
+            const normalizedFieldName = fieldName.toLowerCase();
+            for (const section in SECTION_FIELDS) {
+                const fields = SECTION_FIELDS[section];
+                let sectionFields = [];
+
+                if (typeof fields === 'object' && !Array.isArray(fields)) {
+                    sectionFields = fields[currentVesselType] || Object.values(fields).flat();
+                } else {
+                    sectionFields = fields;
+                }
+
+                const matchingField = sectionFields.find(field => field.toLowerCase().includes(normalizedFieldName));
+                if (matchingField) {
+                    const fieldId = matchingField.replace(/\s+/g, '-').toLowerCase();
+                    const inputElement = document.getElementById(fieldId);
+                    if (inputElement) {
+                        inputElement.value = newValue;
+                        return;
+                    }
+                }
             }
+            addChatbotMessage(`I couldn't find a field matching "${fieldName}". Please check the field name and try again.`);
         }
 
         document.getElementById('userInput').addEventListener('keypress', async function(event) {
