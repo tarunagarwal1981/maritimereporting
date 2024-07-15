@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OptiLog - Interactive Maritime Reporting System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Roboto', sans-serif;
             background-color: #f0f4f8;
+            color: #333;
         }
         .container {
             display: flex;
@@ -21,7 +23,7 @@
             padding: 20px;
             overflow-y: auto;
             background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
         .chatbot {
             width: 40%;
@@ -32,9 +34,9 @@
         }
         .chatbot-header {
             padding: 20px;
-            background-color: #4a90e2;
+            background-color: #3498db;
             color: white;
-            font-weight: bold;
+            font-weight: 500;
         }
         .chatbot-messages {
             flex-grow: 1;
@@ -49,11 +51,22 @@
             margin-bottom: 20px;
             background-color: #f9f9f9;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 8px;
             transition: all 0.3s ease;
+            border: 1px solid #e6e6e6;
         }
         .form-section.highlight {
-            box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+        }
+        .form-section-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .form-section-content {
+            display: none;
+        }
+        .form-section.expanded .form-section-content {
+            display: block;
         }
         .form-row {
             display: flex;
@@ -69,37 +82,40 @@
         .form-group label {
             display: block;
             margin-bottom: 5px;
-            font-weight: bold;
-            color: #333;
+            font-weight: 500;
+            color: #2c3e50;
         }
         .form-group input,
         .form-group textarea,
         .form-group select {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             box-sizing: border-box;
-            border: 1px solid #ddd;
+            border: 1px solid #bdc3c7;
             border-radius: 4px;
             transition: border-color 0.3s ease;
+            font-size: 14px;
         }
         .form-group input:focus,
         .form-group textarea:focus,
         .form-group select:focus {
-            border-color: #4a90e2;
+            border-color: #3498db;
             outline: none;
         }
         #userInput {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
+            padding: 12px;
+            border: 1px solid #bdc3c7;
             border-radius: 4px;
             box-sizing: border-box;
+            font-size: 14px;
         }
         .chatbot-message {
             margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 12px;
+            border-radius: 8px;
             max-width: 80%;
+            font-size: 14px;
         }
         .user-message {
             background-color: #e6f2ff;
@@ -111,9 +127,9 @@
             align-self: flex-start;
         }
         button {
-            background-color: #4a90e2;
+            background-color: #3498db;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
@@ -121,7 +137,7 @@
             transition: background-color 0.3s ease;
         }
         button:hover {
-            background-color: #357abd;
+            background-color: #2980b9;
         }
     </style>
 </head>
@@ -278,7 +294,17 @@
                     const sectionDiv = document.createElement('div');
                     sectionDiv.classList.add('form-section');
                     sectionDiv.id = section.replace(/\s+/g, '-').toLowerCase();
-                    sectionDiv.innerHTML = `<h3>${section}</h3>`;
+                    
+                    const sectionHeader = document.createElement('div');
+                    sectionHeader.classList.add('form-section-header');
+                    sectionHeader.innerHTML = `<h3>${section}</h3>`;
+                    sectionHeader.addEventListener('click', () => toggleSection(sectionDiv));
+                    
+                    const sectionContent = document.createElement('div');
+                    sectionContent.classList.add('form-section-content');
+
+                    sectionDiv.appendChild(sectionHeader);
+                    sectionDiv.appendChild(sectionContent);
 
                     const createFields = (fields) => {
                         let formRow;
@@ -286,7 +312,7 @@
                             if (index % 3 === 0) {
                                 formRow = document.createElement('div');
                                 formRow.classList.add('form-row');
-                                sectionDiv.appendChild(formRow);
+                                sectionContent.appendChild(formRow);
                             }
 
                             const formGroup = document.createElement('div');
@@ -305,7 +331,7 @@
                         for (const subsection in sectionFields) {
                             const subsectionDiv = document.createElement('div');
                             subsectionDiv.innerHTML = `<h4>${subsection}</h4>`;
-                            sectionDiv.appendChild(subsectionDiv);
+                            sectionContent.appendChild(subsectionDiv);
                             createFields(sectionFields[subsection]);
                         }
                     }
@@ -315,16 +341,20 @@
             }
         }
 
+        function toggleSection(section) {
+            section.classList.toggle('expanded');
+        }
+
         async function handleUserInput(userInput) {
             addChatbotMessage(userInput, true);
 
             switch (conversationState) {
                 case 'start':
-                    if (userInput.toLowerCase().includes('new report') || userInput.toLowerCase().includes('start report')) {
-                        addChatbotMessage("Certainly! Let's start a new report. What type of vessel are you reporting for? Please choose from Oil Tanker, LPG Tanker, or LNG Tanker.");
+                    if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('ready')) {
+                        addChatbotMessage("Great! Let's begin. What type of vessel are you reporting for? Please choose from Oil Tanker, LPG Tanker, or LNG Tanker.");
                         conversationState = 'select_vessel_type';
                     } else {
-                        addChatbotMessage("I'm here to help you with maritime reporting. If you'd like to start a new report, just say 'new report' or 'start report'.");
+                        addChatbotMessage("No problem. When you're ready to start filling the form, just let me know by saying 'ready' or 'yes'.");
                     }
                     break;
                 case 'select_vessel_type':
@@ -334,18 +364,28 @@
                     if (matchedVesselType) {
                         currentVesselType = matchedVesselType;
                         generateFormFields(currentVesselType);
-                        conversationState = 'filling_form';
+                        conversationState = 'ask_field_name';
                         currentSection = Object.keys(SECTION_FIELDS)[0];
-                        currentField = SECTION_FIELDS[currentSection][0];
-                        addChatbotMessage(`Great! We'll fill out the form for ${currentVesselType}. Let's start with the ${currentSection} section. What is the ${currentField}?`);
-                        highlightSection(currentSection.replace(/\s+/g, '-').toLowerCase());
+                        addChatbotMessage(`Thank you. We'll fill out the form for ${currentVesselType}. Let's start with the ${currentSection} section. What's the first field you'd like to fill?`);
+                        expandSection(currentSection.replace(/\s+/g, '-').toLowerCase());
                     } else {
                         addChatbotMessage("I'm sorry, I didn't recognize that vessel type. Please choose from Oil Tanker, LPG Tanker, or LNG Tanker.");
                     }
                     break;
+                case 'ask_field_name':
+                    const field = findFieldInCurrentSection(userInput);
+                    if (field) {
+                        currentField = field;
+                        addChatbotMessage(`Got it. What's the value for ${currentField}?`);
+                        conversationState = 'filling_form';
+                    } else {
+                        addChatbotMessage(`I couldn't find that field in the current section. Available fields are: ${getAvailableFields()}. Which one would you like to fill?`);
+                    }
+                    break;
                 case 'filling_form':
                     fillFormField(currentField, userInput);
-                    moveToNextField();
+                    addChatbotMessage(`Thank you. I've filled in ${currentField} with the value ${userInput}. What's the next field you'd like to fill?`);
+                    conversationState = 'ask_field_name';
                     break;
                 case 'confirm_submit':
                     if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('submit')) {
@@ -353,12 +393,38 @@
                         conversationState = 'start';
                     } else {
                         addChatbotMessage("Okay, we won't submit the report yet. Is there any specific field you'd like to review or change?");
+                        conversationState = 'ask_field_name';
                     }
                     break;
                 default:
                     addChatbotMessage("I'm not sure how to proceed. If you'd like to start a new report, please say 'new report'.");
                     conversationState = 'start';
             }
+        }
+
+        function findFieldInCurrentSection(fieldName) {
+            const normalizedFieldName = fieldName.toLowerCase();
+            const currentFields = SECTION_FIELDS[currentSection];
+            
+            if (Array.isArray(currentFields)) {
+                return currentFields.find(field => field.toLowerCase().includes(normalizedFieldName));
+            } else if (typeof currentFields === 'object') {
+                for (const subsection in currentFields) {
+                    const field = currentFields[subsection].find(field => field.toLowerCase().includes(normalizedFieldName));
+                    if (field) return field;
+                }
+            }
+            return null;
+        }
+
+        function getAvailableFields() {
+            const currentFields = SECTION_FIELDS[currentSection];
+            if (Array.isArray(currentFields)) {
+                return currentFields.join(', ');
+            } else if (typeof currentFields === 'object') {
+                return Object.values(currentFields).flat().join(', ');
+            }
+            return '';
         }
 
         function fillFormField(field, value) {
@@ -369,47 +435,10 @@
             }
         }
 
-        function moveToNextField() {
-            const sections = Object.keys(SECTION_FIELDS);
-            let currentSectionIndex = sections.indexOf(currentSection);
-            let currentFields = SECTION_FIELDS[currentSection];
-            
-            if (typeof currentFields === 'object' && !Array.isArray(currentFields)) {
-                currentFields = currentFields[currentVesselType] || Object.values(currentFields).flat();
-            }
-            
-            let currentFieldIndex = currentFields.indexOf(currentField);
-            
-            currentFieldIndex++;
-            if (currentFieldIndex >= currentFields.length) {
-                currentSectionIndex++;
-                currentFieldIndex = 0;
-            }
-            
-            if (currentSectionIndex < sections.length) {
-                currentSection = sections[currentSectionIndex];
-                currentFields = SECTION_FIELDS[currentSection];
-                
-                if (typeof currentFields === 'object' && !Array.isArray(currentFields)) {
-                    currentFields = currentFields[currentVesselType] || Object.values(currentFields).flat();
-                }
-                
-                currentField = currentFields[currentFieldIndex];
-                addChatbotMessage(`Thank you. Now, for the ${currentSection} section, what is the ${currentField}?`);
-                highlightSection(currentSection.replace(/\s+/g, '-').toLowerCase());
-            } else {
-                addChatbotMessage("Great job! You've completed all the fields. Would you like to submit the report now?");
-                conversationState = 'confirm_submit';
-            }
-        }
-
-        function highlightSection(sectionId) {
-            const sections = document.querySelectorAll('.form-section');
-            sections.forEach(section => section.classList.remove('highlight'));
-            const highlightedSection = document.getElementById(sectionId);
-            if (highlightedSection) {
-                highlightedSection.classList.add('highlight');
-                highlightedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        function expandSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section && !section.classList.contains('expanded')) {
+                section.classList.add('expanded');
             }
         }
 
@@ -425,15 +454,12 @@
 
         document.getElementById('reportForm').addEventListener('submit', function(event) {
             event.preventDefault();
-            addChatbotMessage("Thank you for submitting the report. Is there anything else I can help you with?");
-            conversationState = 'start';
-            currentVesselType = '';
-            currentSection = '';
-            currentField = '';
+            addChatbotMessage("It looks like you're trying to submit the form. Are you sure you want to submit the report now?");
+            conversationState = 'confirm_submit';
         });
 
         // Initialize the chatbot
-        addChatbotMessage("Hello! How can I assist you with maritime reporting today?");
+        addChatbotMessage("Hello! I'm here to help you fill out the maritime report. Are you ready to begin?");
     </script>
 </body>
 </html>
