@@ -66,17 +66,6 @@
         <div class="report-form" id="reportFormContainer">
             <h2>Maritime Report</h2>
             <form id="reportForm">
-                <div class="form-group">
-                    <label for="vesselType">Vessel Type:</label>
-                    <select id="vesselType" name="vesselType">
-                        <option value="">Select Vessel Type</option>
-                        <option value="Oil Tanker">Oil Tanker</option>
-                        <option value="LPG Tanker">LPG Tanker</option>
-                        <option value="LNG Tanker">LNG Tanker</option>
-                        <option value="Container">Container</option>
-                    </select>
-                </div>
-                <!-- Dynamic sections will be inserted here -->
                 <div id="dynamicSections"></div>
                 <button type="submit">Submit Report</button>
             </form>
@@ -214,6 +203,10 @@
             ]
         };
 
+        let currentVesselType = '';
+        let currentSectionIndex = 0;
+        let currentFieldIndex = 0;
+
         // Function to dynamically generate form fields based on vessel type
         function generateFormFields(vesselType) {
             const dynamicSections = document.getElementById('dynamicSections');
@@ -251,11 +244,6 @@
             }
         }
 
-        document.getElementById('vesselType').addEventListener('change', function(event) {
-            const vesselType = event.target.value;
-            generateFormFields(vesselType);
-        });
-
         // Inline configuration for OpenAI API
         const config = {
             OPENAI_API_KEY: 'OPENAIAPIKEY'
@@ -263,6 +251,86 @@
 
         // Debug log for API key (last 4 characters for verification)
         console.log("API Key (last 4 characters):", config.OPENAI_API_KEY.slice(-4));
+
+        // Chatbot interaction management
+        const chatbotContainer = document.getElementById('chatMessages');
+        chatbotContainer.innerHTML = '<p>How can I assist you with maritime reporting today?</p>';
+
+        document.getElementById('userInput').addEventListener('keypress', async function(event) {
+            if (event.key === 'Enter') {
+                const userInput = event.target.value.trim();
+                event.target.value = '';
+                if (userInput) {
+                    const userMessage = `<p><strong>You:</strong> ${userInput}</p>`;
+                    chatbotContainer.innerHTML += userMessage;
+                    chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
+
+                    if (!currentVesselType) {
+                        const vesselTypes = ["Oil Tanker", "LPG Tanker", "LNG Tanker", "Container"];
+                        if (vesselTypes.includes(userInput)) {
+                            currentVesselType = userInput;
+                            generateFormFields(currentVesselType);
+                            askNextField();
+                        } else {
+                            chatbotContainer.innerHTML += `<p><strong>AI Assistant:</strong> Please select a vessel type: Oil Tanker, LPG Tanker, LNG Tanker, Container.</p>`;
+                        }
+                    } else {
+                        populateField(userInput);
+                    }
+                }
+            }
+        });
+
+        function askNextField() {
+            const sections = Object.keys(SECTION_FIELDS);
+            if (currentSectionIndex < sections.length) {
+                const section = sections[currentSectionIndex];
+                const fields = SECTION_FIELDS[section];
+                let sectionFields = [];
+
+                if (typeof fields === 'object' && !Array.isArray(fields)) {
+                    if (fields[currentVesselType]) {
+                        sectionFields = fields[currentVesselType];
+                    }
+                } else {
+                    sectionFields = fields;
+                }
+
+                if (currentFieldIndex < sectionFields.length) {
+                    chatbotContainer.innerHTML += `<p><strong>AI Assistant:</strong> Please provide ${sectionFields[currentFieldIndex]}.</p>`;
+                    chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
+                    currentFieldIndex++;
+                } else {
+                    currentFieldIndex = 0;
+                    currentSectionIndex++;
+                    askNextField();
+                }
+            } else {
+                chatbotContainer.innerHTML += `<p><strong>AI Assistant:</strong> All fields have been populated. You can now submit the form.</p>`;
+                chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
+            }
+        }
+
+        function populateField(value) {
+            const sections = Object.keys(SECTION_FIELDS);
+            const section = sections[currentSectionIndex];
+            const fields = SECTION_FIELDS[section];
+            let sectionFields = [];
+
+            if (typeof fields === 'object' && !Array.isArray(fields)) {
+                if (fields[currentVesselType]) {
+                    sectionFields = fields[currentVesselType];
+                }
+            } else {
+                sectionFields = fields;
+            }
+
+            const field = sectionFields[currentFieldIndex - 1];
+            if (field) {
+                document.getElementById(field).value = value;
+                askNextField();
+            }
+        }
 
         document.getElementById('reportForm').addEventListener('submit', function(event) {
             event.preventDefault();
@@ -289,24 +357,6 @@
                 return 'Sorry, there was an error processing your request.';
             }
         }
-
-        const chatbotContainer = document.getElementById('chatMessages');
-        chatbotContainer.innerHTML = '<p>How can I assist you with maritime reporting today?</p>';
-
-        document.getElementById('userInput').addEventListener('keypress', async function(event) {
-            if (event.key === 'Enter') {
-                const userInput = event.target.value;
-                const userMessage = `<p><strong>You:</strong> ${userInput}</p>`;
-                chatbotContainer.innerHTML += userMessage;
-
-                const responseMessage = await sendMessage(userInput);
-                const botMessage = `<p><strong>AI Assistant:</strong> ${responseMessage}</p>`;
-                chatbotContainer.innerHTML += botMessage;
-
-                chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
-                event.target.value = '';
-            }
-        });
     </script>
 </body>
 </html>
