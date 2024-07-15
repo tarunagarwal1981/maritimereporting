@@ -89,7 +89,7 @@
         .form-group textarea,
         .form-group select {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             box-sizing: border-box;
             border: 1px solid #bdc3c7;
             border-radius: 4px;
@@ -104,7 +104,7 @@
         }
         #userInput {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #bdc3c7;
             border-radius: 4px;
             box-sizing: border-box;
@@ -112,8 +112,8 @@
         }
         .chatbot-message {
             margin-bottom: 15px;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 5px;
             max-width: 80%;
             font-size: 14px;
         }
@@ -129,7 +129,7 @@
         button {
             background-color: #3498db;
             color: white;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
@@ -138,6 +138,28 @@
         }
         button:hover {
             background-color: #2980b9;
+        }
+        .field-prompt {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 2px;
+        }
+        .small-warning {
+            font-size: 8px;
+            color: #b20000;
+            background-color: #ffe5e5;
+            border-radius: 5px;
+            padding: 5px;
+        }
+        .info-message {
+            font-size: 12px;
+            color: #0066cc;
+            background-color: #e6f2ff;
+            padding: 5px;
+            border-radius: 3px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            display: inline-block;
         }
     </style>
 </head>
@@ -259,6 +281,8 @@
         let currentVesselType = '';
         let currentSection = '';
         let currentField = '';
+        let currentSectionIndex = 0;
+        let currentFieldIndex = 0;
         let conversationState = 'start';
 
         const chatbotContainer = document.getElementById('chatMessages');
@@ -364,36 +388,25 @@
                     if (matchedVesselType) {
                         currentVesselType = matchedVesselType;
                         generateFormFields(currentVesselType);
-                        conversationState = 'ask_field_name';
-                        currentSection = Object.keys(SECTION_FIELDS)[0];
-                        addChatbotMessage(`Thank you. We'll fill out the form for ${currentVesselType}. Let's start with the ${currentSection} section. What's the first field you'd like to fill?`);
-                        expandSection(currentSection.replace(/\s+/g, '-').toLowerCase());
+                        conversationState = 'filling_form';
+                        currentSectionIndex = 0;
+                        currentFieldIndex = 0;
+                        askNextField();
                     } else {
                         addChatbotMessage("I'm sorry, I didn't recognize that vessel type. Please choose from Oil Tanker, LPG Tanker, or LNG Tanker.");
                     }
                     break;
-                case 'ask_field_name':
-                    const field = findFieldInCurrentSection(userInput);
-                    if (field) {
-                        currentField = field;
-                        addChatbotMessage(`Got it. What's the value for ${currentField}?`);
-                        conversationState = 'filling_form';
-                    } else {
-                        addChatbotMessage(`I couldn't find that field in the current section. Available fields are: ${getAvailableFields()}. Which one would you like to fill?`);
-                    }
-                    break;
                 case 'filling_form':
                     fillFormField(currentField, userInput);
-                    addChatbotMessage(`Thank you. I've filled in ${currentField} with the value ${userInput}. What's the next field you'd like to fill?`);
-                    conversationState = 'ask_field_name';
+                    askNextField();
                     break;
                 case 'confirm_submit':
                     if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('submit')) {
                         addChatbotMessage("Great! Your report has been submitted. Is there anything else I can help you with?");
                         conversationState = 'start';
                     } else {
-                        addChatbotMessage("Okay, we won't submit the report yet. Is there any specific field you'd like to review or change?");
-                        conversationState = 'ask_field_name';
+                        addChatbotMessage("Okay, we won't submit the report yet. Let's continue filling the form.");
+                        askNextField();
                     }
                     break;
                 default:
@@ -402,29 +415,30 @@
             }
         }
 
-        function findFieldInCurrentSection(fieldName) {
-            const normalizedFieldName = fieldName.toLowerCase();
-            const currentFields = SECTION_FIELDS[currentSection];
-            
-            if (Array.isArray(currentFields)) {
-                return currentFields.find(field => field.toLowerCase().includes(normalizedFieldName));
-            } else if (typeof currentFields === 'object') {
-                for (const subsection in currentFields) {
-                    const field = currentFields[subsection].find(field => field.toLowerCase().includes(normalizedFieldName));
-                    if (field) return field;
+        function askNextField() {
+            const sections = Object.keys(SECTION_FIELDS);
+            if (currentSectionIndex < sections.length) {
+                currentSection = sections[currentSectionIndex];
+                let fields = SECTION_FIELDS[currentSection];
+                
+                if (typeof fields === 'object' && !Array.isArray(fields)) {
+                    fields = fields[currentVesselType] || Object.values(fields).flat();
                 }
-            }
-            return null;
-        }
 
-        function getAvailableFields() {
-            const currentFields = SECTION_FIELDS[currentSection];
-            if (Array.isArray(currentFields)) {
-                return currentFields.join(', ');
-            } else if (typeof currentFields === 'object') {
-                return Object.values(currentFields).flat().join(', ');
+                if (currentFieldIndex < fields.length) {
+                    currentField = fields[currentFieldIndex];
+                    addChatbotMessage(`Please provide the ${currentField}:`);
+                    expandSection(currentSection.replace(/\s+/g, '-').toLowerCase());
+                    currentFieldIndex++;
+                } else {
+                    currentSectionIndex++;
+                    currentFieldIndex = 0;
+                    askNextField();
+                }
+            } else {
+                addChatbotMessage("Great job! You've completed all the fields. Would you like to submit the report now?");
+                conversationState = 'confirm_submit';
             }
-            return '';
         }
 
         function fillFormField(field, value) {
