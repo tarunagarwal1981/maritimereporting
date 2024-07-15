@@ -5,155 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OptiLog - AI-Enhanced Maritime Reporting System</title>
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            display: flex;
-            height: 100%;
-        }
-        .report-form {
-            width: 70%;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        .chatbot {
-            width: 30%;
-            display: flex;
-            flex-direction: column;
-            background-color: #f7f7f7;
-            border-left: 1px solid #ccc;
-        }
-        .chatbot-header {
-            padding: 20px;
-            background-color: #e0e0e0;
-        }
-        .chatbot-messages {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 20px;
-        }
-        .chatbot-input {
-            padding: 20px;
-            border-top: 1px solid #ccc;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-        }
-        #userInput {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-        }
+        /* We'll add the CSS here in the next step */
     </style>
 </head>
 <body>
     <div class="container">
         <div class="report-form">
             <h2>Maritime Report</h2>
-            <form id="reportForm">
-                <div class="form-group">
-                    <label for="vesselName">Vessel Name:</label>
-                    <input type="text" id="vesselName" name="vesselName">
-                </div>
-                <div class="form-group">
-                    <label for="imoNumber">IMO Number:</label>
-                    <input type="text" id="imoNumber" name="imoNumber">
-                </div>
-                <div class="form-group">
-                    <label for="reportType">Report Type:</label>
-                    <select id="reportType" name="reportType">
-                        <option value="arrival">Arrival</option>
-                        <option value="departure">Departure</option>
-                        <option value="noon">Noon Report</option>
-                        <option value="incident">Incident Report</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="details">Report Details:</label>
-                    <textarea id="details" name="details" rows="4"></textarea>
-                </div>
-                <button type="submit">Submit Report</button>
-            </form>
-        </div>
-        <div class="chatbot">
-            <div class="chatbot-header">
-                <h2>AI Assistant</h2>
+            <div id="reportFormContainer">
+                <!-- The form will be dynamically inserted here -->
             </div>
-            <div id="chatMessages" class="chatbot-messages"></div>
-            <div class="chatbot-input">
-                <input id="userInput" type="text" placeholder="Type your message and press Enter">
+        </div>
+        <div class="sidebar">
+            <div class="history-panel">
+                <h3>Report History</h3>
+                <div id="reportHistory"></div>
+            </div>
+            <div class="chatbot">
+                <div class="chatbot-header">
+                    <h2>AI Assistant</h2>
+                </div>
+                <div id="chatMessages" class="chatbot-messages"></div>
+                <div class="chatbot-input">
+                    <input id="userInput" type="text" placeholder="Type your message and press Enter">
+                </div>
             </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script>
-        // Inline configuration
-        const config = {
-            OPENAI_API_KEY: 'OPENAIAPIKEY'
-        };
-
-        // Debug log
-        console.log("API Key (last 4 characters):", config.OPENAI_API_KEY.slice(-4));
-
-        document.getElementById('reportForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            alert('Report submitted!');
-        });
-
-        async function sendMessage(message) {
-            try {
-                const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-                    model: "gpt-3.5-turbo",
-                    messages: [
-                        { role: "system", content: "You are an AI assistant for a maritime reporting system. Provide helpful information about maritime reports, regulations, and assist with any questions related to shipping and maritime operations." },
-                        { role: "user", content: message }
-                    ]
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${config.OPENAI_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                return response.data.choices[0].message.content;
-            } catch (error) {
-                console.error('Error:', error);
-                return 'Sorry, there was an error processing your request.';
-            }
-        }
-
-        const chatbotContainer = document.getElementById('chatMessages');
-        chatbotContainer.innerHTML = '<p>How can I assist you with maritime reporting today?</p>';
-
-        document.getElementById('userInput').addEventListener('keypress', async function(event) {
-            if (event.key === 'Enter') {
-                const userInput = event.target.value;
-                const userMessage = `<p><strong>You:</strong> ${userInput}</p>`;
-                chatbotContainer.innerHTML += userMessage;
-
-                const responseMessage = await sendMessage(userInput);
-                const botMessage = `<p><strong>AI Assistant:</strong> ${responseMessage}</p>`;
-                chatbotContainer.innerHTML += botMessage;
-
-                chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
-                event.target.value = '';
-            }
-        });
+        // We'll add the JavaScript here in the next step
     </script>
 </body>
 </html>
