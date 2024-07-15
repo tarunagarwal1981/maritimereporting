@@ -10,7 +10,7 @@
             padding: 0;
             height: 100%;
             font-family: Arial, sans-serif;
-            background-color: #f0f2f5;
+            background-color: #f0f4f8;
         }
         .container {
             display: flex;
@@ -21,17 +21,18 @@
             padding: 20px;
             overflow-y: auto;
             background-color: white;
-            border-right: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         .chatbot {
             width: 30%;
             display: flex;
             flex-direction: column;
-            background-color: #f7f7f7;
+            background-color: #ffffff;
+            border-left: 1px solid #e0e0e0;
         }
         .chatbot-header {
             padding: 20px;
-            background-color: #007bff;
+            background-color: #4a90e2;
             color: white;
         }
         .chatbot-messages {
@@ -41,49 +42,57 @@
         }
         .chatbot-input {
             padding: 20px;
-            border-top: 1px solid #ccc;
-            background-color: #e9ecef;
+            border-top: 1px solid #e0e0e0;
         }
-        .form-group {
-            margin-bottom: 15px;
+        .form-section {
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .form-row {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            flex: 1 1 25%;
+            min-width: 200px;
+            padding: 0 10px;
+            margin-bottom: 15px;
         }
         .form-group label {
             display: block;
             margin-bottom: 5px;
-            width: 100%;
+            font-weight: bold;
         }
         .form-group input,
         .form-group textarea,
         .form-group select {
+            width: 100%;
             padding: 8px;
             box-sizing: border-box;
-            width: 48%;
-        }
-        .form-group.full-width input,
-        .form-group.full-width textarea,
-        .form-group.full-width select {
-            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         #userInput {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             box-sizing: border-box;
         }
-        h2, h3 {
-            color: #007bff;
-        }
-        button {
-            background-color: #007bff;
+        button[type="submit"] {
+            background-color: #4a90e2;
             color: white;
             padding: 10px 20px;
             border: none;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 16px;
         }
-        button:hover {
-            background-color: #0056b3;
+        button[type="submit"]:hover {
+            background-color: #357abd;
         }
     </style>
 </head>
@@ -232,10 +241,9 @@
         let currentSectionIndex = 0;
         let currentFieldIndex = 0;
 
-        // Function to dynamically generate form fields based on vessel type
         function generateFormFields(vesselType) {
             const dynamicSections = document.getElementById('dynamicSections');
-            dynamicSections.innerHTML = ''; // Clear previous fields
+            dynamicSections.innerHTML = '';
 
             for (const section in SECTION_FIELDS) {
                 const fields = SECTION_FIELDS[section];
@@ -244,41 +252,57 @@
                 if (typeof fields === 'object' && !Array.isArray(fields)) {
                     if (fields[vesselType]) {
                         sectionFields = fields[vesselType];
+                    } else if (section !== "Cargo" && section !== "Fuel Consumption" && section !== "Fuel Allocation") {
+                        sectionFields = fields;
                     }
                 } else {
                     sectionFields = fields;
                 }
 
-                if (sectionFields.length > 0) {
+                if (sectionFields && Object.keys(sectionFields).length > 0) {
                     const sectionDiv = document.createElement('div');
                     sectionDiv.classList.add('form-section');
                     sectionDiv.innerHTML = `<h3>${section}</h3>`;
 
-                    sectionFields.forEach(field => {
-                        const formGroup = document.createElement('div');
-                        formGroup.classList.add('form-group');
-                        formGroup.classList.add(sectionFields.length <= 2 ? 'full-width' : '');
-                        formGroup.innerHTML = `
-                            <label for="${field}">${field}:</label>
-                            <input type="text" id="${field}" name="${field}">
-                        `;
-                        sectionDiv.appendChild(formGroup);
-                    });
+                    let formRow;
+                    const createFields = (fields) => {
+                        fields.forEach((field, index) => {
+                            if (index % 3 === 0) {
+                                formRow = document.createElement('div');
+                                formRow.classList.add('form-row');
+                                sectionDiv.appendChild(formRow);
+                            }
+
+                            const formGroup = document.createElement('div');
+                            formGroup.classList.add('form-group');
+                            formGroup.innerHTML = `
+                                <label for="${field}">${field}:</label>
+                                <input type="text" id="${field}" name="${field}">
+                            `;
+                            formRow.appendChild(formGroup);
+                        });
+                    };
+
+                    if (Array.isArray(sectionFields)) {
+                        createFields(sectionFields);
+                    } else {
+                        for (const subsection in sectionFields) {
+                            const subsectionDiv = document.createElement('div');
+                            subsectionDiv.innerHTML = `<h4>${subsection}</h4>`;
+                            sectionDiv.appendChild(subsectionDiv);
+                            createFields(sectionFields[subsection]);
+                        }
+                    }
 
                     dynamicSections.appendChild(sectionDiv);
                 }
             }
         }
 
-        // Inline configuration for OpenAI API
         const config = {
-            OPENAI_API_KEY: 'OPENAIAPIKEY'
+            OPENAI_API_KEY: 'YOUR_OPENAI_API_KEY'
         };
 
-        // Debug log for API key (last 4 characters for verification)
-        console.log("API Key (last 4 characters):", config.OPENAI_API_KEY.slice(-4));
-
-        // Chatbot interaction management
         const chatbotContainer = document.getElementById('chatMessages');
         chatbotContainer.innerHTML = '<p>How can I assist you with maritime reporting today?</p>';
 
@@ -292,17 +316,21 @@
                     chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
 
                     if (!currentVesselType) {
-                        const vesselTypes = ["oil tanker", "lpg tanker", "lng tanker", "container"];
-                        if (vesselTypes.includes(userInput.toLowerCase())) {
-                            currentVesselType = vesselTypes.find(v => v.toLowerCase() === userInput.toLowerCase());
+                        const vesselTypes = ["Oil Tanker", "LPG Tanker", "LNG Tanker"];
+                        const normalizedInput = userInput.toLowerCase();
+                        const matchedVesselType = vesselTypes.find(type => type.toLowerCase() === normalizedInput);
+                        if (matchedVesselType) {
+                            currentVesselType = matchedVesselType;
                             generateFormFields(currentVesselType);
                             askNextField();
                         } else {
-                            chatbotContainer.innerHTML += `<p><strong>AI Assistant:</strong> Please select a vessel type: Oil Tanker, LPG Tanker, LNG Tanker, Container.</p>`;
+                            const response = await sendMessage(userInput);
+                            chatbotContainer.innerHTML += `<p><strong>AI Assistant:</strong> ${response}</p>`;
                         }
                     } else {
                         populateField(userInput);
                     }
+                    chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
                 }
             }
         });
@@ -317,17 +345,33 @@
                 if (typeof fields === 'object' && !Array.isArray(fields)) {
                     if (fields[currentVesselType]) {
                         sectionFields = fields[currentVesselType];
+                    } else if (section !== "Cargo" && section !== "Fuel Consumption" && section !== "Fuel Allocation") {
+                        sectionFields = fields;
                     }
                 } else {
                     sectionFields = fields;
                 }
 
-                if (currentFieldIndex < sectionFields.length) {
-                    chatbotContainer.innerHTML += `<p><strong>AI Assistant:</strong> Please provide ${sectionFields[currentFieldIndex]}.</p>`;
-                    chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
-                    currentFieldIndex++;
+                if (sectionFields && Object.keys(sectionFields).length > 0) {
+                    let fieldName;
+                    if (Array.isArray(sectionFields)) {
+                        fieldName = sectionFields[currentFieldIndex];
+                    } else {
+                        const subsections = Object.keys(sectionFields);
+                        const subsection = subsections[Math.floor(currentFieldIndex / Object.keys(sectionFields[subsections[0]]).length)];
+                        fieldName = sectionFields[subsection][currentFieldIndex % Object.keys(sectionFields[subsections[0]]).length];
+                    }
+
+                    if (fieldName) {
+                        chatbotContainer.innerHTML += `<p><strong>AI Assistant:</strong> Please provide ${fieldName}.</p>`;
+                        chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
+                        currentFieldIndex++;
+                    } else {
+                        currentFieldIndex = 0;
+                        currentSectionIndex++;
+                        askNextField();
+                    }
                 } else {
-                    currentFieldIndex = 0;
                     currentSectionIndex++;
                     askNextField();
                 }
@@ -346,14 +390,29 @@
             if (typeof fields === 'object' && !Array.isArray(fields)) {
                 if (fields[currentVesselType]) {
                     sectionFields = fields[currentVesselType];
+                } else if (section !== "Cargo" && section !== "Fuel Consumption" && section !== "Fuel Allocation") {
+                    sectionFields = fields;
                 }
             } else {
                 sectionFields = fields;
             }
 
-            const field = sectionFields[currentFieldIndex - 1];
-            if (field) {
-                document.getElementById(field).value = value;
+            if (sectionFields && Object.keys(sectionFields).length > 0) {
+                let fieldName;
+                if (Array.isArray(sectionFields)) {
+                    fieldName = sectionFields[currentFieldIndex - 1];
+                } else {
+                    const subsections = Object.keys(sectionFields);
+                    const subsection = subsections[Math.floor((currentFieldIndex - 1) / Object.keys(sectionFields[subsections[0]]).length)];
+                    fieldName = sectionFields[subsection][(currentFieldIndex - 1) % Object.keys(sectionFields[subsections[0]]).length];
+                }
+
+                if (fieldName) {
+                    document.getElementById(fieldName).value = value;
+                    askNextField();
+                }
+            } else {
+                currentSectionIndex++;
                 askNextField();
             }
         }
@@ -368,7 +427,7 @@
                 const response = await axios.post('https://api.openai.com/v1/chat/completions', {
                     model: "gpt-3.5-turbo",
                     messages: [
-                        { role: "system", content: "You are an AI assistant for a maritime reporting system. Provide helpful information about maritime reports, regulations, and assist with any questions related to shipping and maritime operations." },
+                        { role: "system", content: "You are an AI assistant for a maritime reporting system. Provide helpful information about maritime reports, regulations, and assist with any questions related to shipping and maritime operations. If the user hasn't selected a vessel type yet, kindly ask them to choose from Oil Tanker, LPG Tanker, or LNG Tanker." },
                         { role: "user", content: message }
                     ]
                 }, {
