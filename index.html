@@ -102,8 +102,12 @@
     </div>
 
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script src="config.js"></script> <!-- Make sure this file is generated during deployment -->
     <script>
+        // Inline configuration
+        const config = {
+            OPENAI_API_KEY: 'OPENAIAPIKEY' // Replace 'OPENAIAPIKEY' with your actual API key or a placeholder
+        };
+
         document.getElementById('reportForm').addEventListener('submit', function(event) {
             event.preventDefault();
             alert('Report submitted!');
@@ -119,7 +123,7 @@
                     ]
                 }, {
                     headers: {
-                        'Authorization': `Bearer ${OPENAI_API_KEY}`, // Use the key from config.js
+                        'Authorization': `Bearer ${config.OPENAI_API_KEY}`,
                         'Content-Type': 'application/json'
                     }
                 });
