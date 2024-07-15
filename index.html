@@ -4,73 +4,128 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OptiLog - AI-Enhanced Maritime Reporting System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
-    body, html {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        font-family: Arial, sans-serif;
-    }
-    .container {
-        display: flex;
-        height: 100%;
-    }
-    .report-form {
-        width: 70%;
-        padding: 20px;
-        overflow-y: auto;
-    }
-    .sidebar {
-        width: 30%;
-        display: flex;
-        flex-direction: column;
-        background-color: #f7f7f7;
-        border-left: 1px solid #ccc;
-    }
-    .history-panel {
-        padding: 20px;
-        background-color: #e0e0e0;
-        max-height: 30%;
-        overflow-y: auto;
-    }
-    .chatbot {
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;
-    }
-    .chatbot-header {
-        padding: 20px;
-        background-color: #d0d0d0;
-    }
-    .chatbot-messages {
-        flex-grow: 1;
-        overflow-y: auto;
-        padding: 20px;
-    }
-    .chatbot-input {
-        padding: 20px;
-        border-top: 1px solid #ccc;
-    }
-    .form-group {
-        margin-bottom: 15px;
-    }
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-    }
-    .form-group input,
-    .form-group textarea,
-    .form-group select {
-        width: 100%;
-        padding: 8px;
-        box-sizing: border-box;
-    }
-    #userInput {
-        width: 100%;
-        padding: 8px;
-        box-sizing: border-box;
-    }
-</style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            height: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .report-form {
+            width: 65%;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-right: 20px;
+        }
+        .sidebar {
+            width: 35%;
+            display: flex;
+            flex-direction: column;
+        }
+        .history-panel {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 30%;
+            overflow-y: auto;
+        }
+        .chatbot {
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
+        }
+        .chatbot-header {
+            padding: 20px;
+            background-color: #3498db;
+            color: #ffffff;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        .chatbot-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .chatbot-input {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        h2, h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+        #userInput {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+        button {
+            background-color: #3498db;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Roboto', sans-serif;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .message.user {
+            background-color: #e8f4fd;
+            align-self: flex-end;
+        }
+        .message.assistant {
+            background-color: #f0f0f0;
+            align-self: flex-start;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -98,130 +153,129 @@
     </div>
 
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-<script>
-// Constants
-const REPORT_TYPES = [
-    "Arrival", "Departure", "Begin of offhire", "End of offhire", "Arrival STS",
-    "Departure STS", "STS", "Begin canal passage", "End canal passage",
-    "Begin of sea passage", "End of sea passage", "Begin Anchoring/Drifting",
-    "End Anchoring/Drifting", "Noon (Position) - Sea passage", "Noon (Position) - Port",
-    "Noon (Position) - River", "Noon (Position) - Stoppage", "ETA update",
-    "Begin fuel change over", "End fuel change over", "Change destination (Deviation)",
-    "Begin of deviation", "End of deviation", "Entering special area", "Leaving special area"
-];
+    <script>
+        // Constants
+        const REPORT_TYPES = [
+            "Arrival", "Departure", "Begin of offhire", "End of offhire", "Arrival STS",
+            "Departure STS", "STS", "Begin canal passage", "End canal passage",
+            "Begin of sea passage", "End of sea passage", "Begin Anchoring/Drifting",
+            "End Anchoring/Drifting", "Noon (Position) - Sea passage", "Noon (Position) - Port",
+            "Noon (Position) - River", "Noon (Position) - Stoppage", "ETA update",
+            "Begin fuel change over", "End fuel change over", "Change destination (Deviation)",
+            "Begin of deviation", "End of deviation", "Entering special area", "Leaving special area"
+        ];
 
-const TRAINING_DATA = `
-You are an AI assistant for an advanced maritime reporting system, with the knowledge and experience of a seasoned maritime seafarer. Your role is to guide users through creating various types of maritime reports, ensuring compliance with industry standards and regulations while maintaining a logical sequence of events. 
-Keep your responses as short and crisp and easy to understand as possible. While suggesting the reports just suggest the name of the reports not their explanations. If there is no Reports History allow user to start any report.
-Valid report types: ${REPORT_TYPES.join(', ')}
+        const TRAINING_DATA = `
+        You are an AI assistant for an advanced maritime reporting system, with the knowledge and experience of a seasoned maritime seafarer. Your role is to guide users through creating various types of maritime reports, ensuring compliance with industry standards and regulations while maintaining a logical sequence of events. 
+        Keep your responses as short and crisp and easy to understand as possible. While suggesting the reports just suggest the name of the reports not their explanations. If there is no Reports History allow user to start any report.
+        Valid report types: ${REPORT_TYPES.join(', ')}
 
-Key features:
-1. Error reduction and data completion assistance
-2. Insights generation based on reported data
-3. Streamlined reporting process
-4. Enhanced accuracy in maritime operational reporting
+        Key features:
+        1. Error reduction and data completion assistance
+        2. Insights generation based on reported data
+        3. Streamlined reporting process
+        4. Enhanced accuracy in maritime operational reporting
 
-When suggesting follow-up reports, carefully consider the history of the last 3-4 reports and the logical sequence of maritime operations. Only suggest reports from the provided list that make sense given the current context and previous reports.
-`;
+        When suggesting follow-up reports, carefully consider the history of the last 3-4 reports and the logical sequence of maritime operations. Only suggest reports from the provided list that make sense given the current context and previous reports.
+        `;
 
-// Configuration
-const config = {
-    OPENAI_API_KEY: 'OPENAIAPIKEY' // Replace with your actual API key
-};
+        // Configuration
+        const config = {
+            OPENAI_API_KEY: 'OPENAIAPIKEY' // Replace with your actual API key
+        };
 
-let reportHistory = [];
-let currentReportType = null;
+        let reportHistory = [];
+        let currentReportType = null;
 
-// Function to create a simple form based on report type
-function createForm(reportType) {
-    const formHTML = `
-        <h3>${reportType} Report</h3>
-        <form id="reportForm">
-            <div class="form-group">
-                <label for="vesselName">Vessel Name:</label>
-                <input type="text" id="vesselName" name="vesselName">
-            </div>
-            <div class="form-group">
-                <label for="imoNumber">IMO Number:</label>
-                <input type="text" id="imoNumber" name="imoNumber">
-            </div>
-            <div class="form-group">
-                <label for="reportDetails">Report Details:</label>
-                <textarea id="reportDetails" name="reportDetails" rows="4"></textarea>
-            </div>
-            <button type="submit">Submit Report</button>
-        </form>
-    `;
-    document.getElementById('reportFormContainer').innerHTML = formHTML;
-    
-    document.getElementById('reportForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-        alert(`${reportType} report submitted!`);
-        reportHistory.push(reportType);
-        updateReportHistory();
-        currentReportType = null;
-        document.getElementById('reportFormContainer').innerHTML = '';
-    });
-}
+        // Function to create a simple form based on report type
+        function createForm(reportType) {
+            const formHTML = `
+                <h3>${reportType} Report</h3>
+                <form id="reportForm">
+                    <div class="form-group">
+                        <label for="vesselName">Vessel Name:</label>
+                        <input type="text" id="vesselName" name="vesselName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="imoNumber">IMO Number:</label>
+                        <input type="text" id="imoNumber" name="imoNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reportDetails">Report Details:</label>
+                        <textarea id="reportDetails" name="reportDetails" rows="4" required></textarea>
+                    </div>
+                    <button type="submit">Submit Report</button>
+                </form>
+            `;
+            document.getElementById('reportFormContainer').innerHTML = formHTML;
+            
+            document.getElementById('reportForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                alert(`${reportType} report submitted!`);
+                reportHistory.push(reportType);
+                updateReportHistory();
+                currentReportType = null;
+                document.getElementById('reportFormContainer').innerHTML = '';
+            });
+        }
 
-function updateReportHistory() {
-    const historyHTML = reportHistory.map(report => `<div>${report}</div>`).join('');
-    document.getElementById('reportHistory').innerHTML = historyHTML;
-}
+        function updateReportHistory() {
+            const historyHTML = reportHistory.map(report => `<div>${report}</div>`).join('');
+            document.getElementById('reportHistory').innerHTML = historyHTML;
+        }
 
-async function getAIResponse(userInput) {
-    try {
-        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-            model: "gpt-3.5-turbo",
-            messages: [
-                { role: "system", content: TRAINING_DATA },
-                { role: "user", content: userInput }
-            ],
-            max_tokens: 300,
-            temperature: 1.0,
-        }, {
-            headers: {
-                'Authorization': `Bearer ${config.OPENAI_API_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        return response.data.choices[0].message.content;
-    } catch (error) {
-        console.error('Error:', error);
-        return 'Sorry, there was an error processing your request.';
-    }
-}
-
-const chatbotContainer = document.getElementById('chatMessages');
-chatbotContainer.innerHTML = '<p>How can I assist you with maritime reporting today?</p>';
-
-document.getElementById('userInput').addEventListener('keypress', async function(event) {
-    if (event.key === 'Enter') {
-        const userInput = event.target.value;
-        const userMessage = `<p><strong>You:</strong> ${userInput}</p>`;
-        chatbotContainer.innerHTML += userMessage;
-
-        const responseMessage = await getAIResponse(userInput);
-        const botMessage = `<p><strong>AI Assistant:</strong> ${responseMessage}</p>`;
-        chatbotContainer.innerHTML += botMessage;
-
-        // Check if a specific report type is agreed upon
-        for (const reportType of REPORT_TYPES) {
-            if (responseMessage.includes(`Agreed. The form for ${reportType}`)) {
-                currentReportType = reportType;
-                createForm(reportType);
-                break;
+        async function getAIResponse(userInput) {
+            try {
+                const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+                    model: "gpt-3.5-turbo",
+                    messages: [
+                        { role: "system", content: TRAINING_DATA },
+                        { role: "user", content: userInput }
+                    ],
+                    max_tokens: 300,
+                    temperature: 1.0,
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${config.OPENAI_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                return response.data.choices[0].message.content;
+            } catch (error) {
+                console.error('Error:', error);
+                return 'Sorry, there was an error processing your request.';
             }
         }
 
-        chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
-        event.target.value = '';
-    }
-});
+        const chatbotContainer = document.getElementById('chatMessages');
+        chatbotContainer.innerHTML = '<div class="message assistant"><p>How can I assist you with maritime reporting today?</p></div>';
 
-// Initialize report history
-updateReportHistory();
-</script>
+        document.getElementById('userInput').addEventListener('keypress', async function(event) {
+            if (event.key === 'Enter') {
+                const userInput = event.target.value;
+                const userMessage = `<div class="message user"><p>${userInput}</p></div>`;
+                chatbotContainer.innerHTML += userMessage;
+
+                const responseMessage = await getAIResponse(userInput);
+                const botMessage = `<div class="message assistant"><p>${responseMessage}</p></div>`;
+                chatbotContainer.innerHTML += botMessage;
+
+                // Check if a specific report type is agreed upon
+                for (const reportType of REPORT_TYPES) {
+                    if (responseMessage.includes(`Agreed. The form for ${reportType}`)) {
+                        currentReportType = reportType;
+                        createForm(reportType);
+                        break;
+                    }
+                }
+
+                chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
+                event.target.value = '';
+            }
+        });
+
+        // Initialize report history
+        updateReportHistory();
+    </script>
 </body>
 </html>
