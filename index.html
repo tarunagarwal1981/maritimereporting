@@ -108,6 +108,9 @@
             OPENAI_API_KEY: 'OPENAIAPIKEY'
         };
 
+        // Debug log
+        console.log("API Key (last 4 characters):", config.OPENAI_API_KEY.slice(-4));
+
         document.getElementById('reportForm').addEventListener('submit', function(event) {
             event.preventDefault();
             alert('Report submitted!');
