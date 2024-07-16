@@ -308,52 +308,56 @@
         const chatbotContainer = document.getElementById('chatMessages');
 
         async function getOpenAIResponse(prompt) {
-            try {
-                const response = await fetch('/api/openai', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: "gpt-3.5-turbo",
-                        messages: [
-                            {
-                                role: "system",
-                                content: `You are NaVya, an AI assistant for maritime reporting. Your task is to guide users through creating maritime reports, ensuring compliance with industry standards and regulations. 
+  try {
+    const messages = [
+      {
+        role: "system",
+        content: `You are NaVya, an AI assistant for maritime reporting. Your task is to guide users through creating maritime reports, ensuring compliance with industry standards and regulations. 
 
-                                Vessel Types: Container vessel, Bulk Carrier, Oil Tanker, LPG tanker, LNG tanker
+        Vessel Types: Container vessel, Bulk Carrier, Oil Tanker, LPG tanker, LNG tanker
 
-                                Report Types: ${REPORT_TYPES.join(', ')}
+        Report Types: ${REPORT_TYPES.join(', ')}
 
-                                Instructions:
-                                1. Ask for the vessel type if not provided.
-                                2. Suggest appropriate report types based on the vessel type and logical sequence of maritime operations.
-                                3. Guide the user through filling out the report form, which is pre-filled with random values for certain fields.
-                                4. Ask for values for each non-pre-filled field, providing helpful guidance and reminders.
-                                5. Inform users they can change pre-filled values by saying "change value of [field name] to [new value]".
-                                6. Provide clear, concise responses and ask for one piece of information at a time.
-                                7. Ensure all required fields are filled before suggesting report submission.`
-                            },
-                            {role: "user", content: prompt}
-                        ],
-                        max_tokens: 150
-                    })
-                });
+        Instructions:
+        1. Ask for the vessel type if not provided.
+        2. Suggest appropriate report types based on the vessel type and logical sequence of maritime operations.
+        3. Guide the user through filling out the report form, which is pre-filled with random values for certain fields.
+        4. Ask for values for each non-pre-filled field, providing helpful guidance and reminders.
+        5. Inform users they can change pre-filled values by saying "change value of [field name] to [new value]".
+        6. Provide clear, concise responses and ask for one piece of information at a time.
+        7. Ensure all required fields are filled before suggesting report submission.`
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ];
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+    const response = await fetch('/api/openai-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ messages })
+    });
 
-                const data = await response.json();
-                if (!data.choices || data.choices.length === 0) {
-                    throw new Error('No response from OpenAI API');
-                }
-                return data.choices[0].message.content;
-            } catch (error) {
-                console.error("Error in OpenAI API call:", error);
-                throw error;
-            }
-        }
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("Received response from OpenAI API:", data);
+
+    if (!data.choices || data.choices.length === 0) {
+      throw new Error('No response from OpenAI API');
+    }
+
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("Error in OpenAI API call:", error);
+    throw error;
+  }
+}
 
         function addChatbotMessage(message, isUser = false) {
             const messageDiv = document.createElement('div');
