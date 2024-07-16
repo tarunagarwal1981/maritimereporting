@@ -267,25 +267,26 @@
             },
             "Draft": {
                 "Actual": ["Actual Forward Draft (m)", "Actual Aft Draft (m)", "Displacement (mt)", "Water Depth (m)"]
-            },
-            "Bunker": [
-                "Bunker Type",
-                "Quantity (mt)",
-                "Density at 15°C (kg/m3)",
-                "Viscosity at 50°C (cSt)",
-                "Flash Point (°C)",
-                "Sulphur Content (%)",
-                "Water Content (%)",
-                "Ash Content (%)",
-                "Vanadium (mg/kg)",
-                "Aluminium + Silicon (mg/kg)",
-                "Pour Point (°C)",
-                "Supplier Name",
-                "Delivery Date",
-                "Delivery Port",
-                "BDN Number"
-            ]
+            }
         };
+
+        const BUNKERING_FIELDS = [
+            "Bunker Type",
+            "Quantity (mt)",
+            "Density at 15°C (kg/m3)",
+            "Viscosity at 50°C (cSt)",
+            "Flash Point (°C)",
+            "Sulphur Content (%)",
+            "Water Content (%)",
+            "Ash Content (%)",
+            "Vanadium (mg/kg)",
+            "Aluminium + Silicon (mg/kg)",
+            "Pour Point (°C)",
+            "Supplier Name",
+            "Delivery Date",
+            "Delivery Port",
+            "BDN Number"
+        ];
 
         const REPORT_TYPES = [
             "Arrival", "Departure", "Begin of offhire", "End of offhire", "Arrival STS", "Departure STS",
@@ -369,6 +370,7 @@
                     const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
                     if (matchedReportType) {
                         currentReportType = matchedReportType;
+                        generateFormFields(currentVesselType); // Regenerate form fields to include/exclude Bunkering section
                         fillInitialFormFields();
                         conversationState = 'filling_form';
                         currentSectionIndex = 0;
@@ -519,6 +521,45 @@
                     dynamicSections.appendChild(sectionDiv);
                 }
             }
+
+            // Add Bunkering section only if it's a Bunkering report
+            if (currentReportType.toLowerCase() === 'bunkering') {
+                const bunkeringSection = document.createElement('div');
+                bunkeringSection.classList.add('form-section');
+                bunkeringSection.id = 'bunkering';
+                
+                const sectionHeader = document.createElement('div');
+                sectionHeader.classList.add('form-section-header');
+                sectionHeader.innerHTML = `<h3>Bunkering</h3>`;
+                sectionHeader.addEventListener('click', () => toggleSection(bunkeringSection));
+                
+                const sectionContent = document.createElement('div');
+                sectionContent.classList.add('form-section-content');
+
+                bunkeringSection.appendChild(sectionHeader);
+                bunkeringSection.appendChild(sectionContent);
+
+                let formRow;
+                BUNKERING_FIELDS.forEach((field, index) => {
+                    if (index % 3 === 0) {
+                        formRow = document.createElement('div');
+                        formRow.classList.add('form-row');
+                        sectionContent.appendChild(formRow);
+                    }
+
+                    const formGroup = document.createElement('div');
+                    formGroup.classList.add('form-group');
+                    const fieldId = field.replace(/\s+/g, '-').toLowerCase();
+
+                    formGroup.innerHTML = `
+                        <label for="${fieldId}">${field}:</label>
+                        <input type="text" id="${fieldId}" name="${field}">
+                    `;
+                    formRow.appendChild(formGroup);
+                });
+
+                dynamicSections.appendChild(bunkeringSection);
+            }
         }
 
         function toggleSection(section) {
@@ -608,6 +649,23 @@
                 currentSectionIndex++;
                 currentFieldIndex = 0;
             }
+
+            // Check for Bunkering fields if it's a Bunkering report
+            if (currentReportType.toLowerCase() === 'bunkering' && currentSectionIndex === sections.length) {
+                while (currentFieldIndex < BUNKERING_FIELDS.length) {
+                    currentField = BUNKERING_FIELDS[currentFieldIndex];
+                    const fieldId = currentField.replace(/\s+/g, '-').toLowerCase();
+                    const inputElement = document.getElementById(fieldId);
+                    
+                    if (inputElement && !inputElement.value) {
+                        addChatbotMessage(`Please provide the ${currentField} (or type 'null' to skip):`);
+                        expandSection('bunkering');
+                        return;
+                    }
+                    currentFieldIndex++;
+                }
+            }
+
             addChatbotMessage("Great job! You've completed all the fields. Would you like to submit the report now?");
             conversationState = 'confirm_submit';
         }
