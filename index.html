@@ -654,3 +654,81 @@
                         return;
                     }
                 }
+}
+            addChatbotMessage(`I couldn't find a field matching "${fieldName}". Please check the field name and try again.`);
+        }
+
+        document.getElementById('userInput').addEventListener('keypress', async function(event) {
+            if (event.key === 'Enter') {
+                const userInput = event.target.value.trim();
+                event.target.value = '';
+                if (userInput) {
+                    await handleUserInput(userInput);
+                }
+            }
+        });
+
+        document.getElementById('reportForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            addChatbotMessage("It looks like you're trying to submit the form. Are you sure you want to submit the report now?");
+            conversationState = 'confirm_submit';
+        });
+
+        function initApp() {
+            console.log("Initializing application...");
+            conversationState = 'start';
+            currentVesselType = '';
+            currentSection = '';
+            currentField = '';
+            currentSectionIndex = 0;
+            currentFieldIndex = 0;
+            userExpandedSections.clear();
+            document.getElementById('dynamicSections').innerHTML = '';
+            document.getElementById('chatMessages').innerHTML = '';
+            addChatbotMessage("Welcome to NaVya, your maritime reporting assistant! I'm here to help you create a report. Please tell me the type of vessel you're reporting for.");
+        }
+
+        window.onload = initApp;
+
+        function validateForm() {
+            let isValid = true;
+            const requiredFields = document.querySelectorAll('input[required]');
+            requiredFields.forEach(field => {
+                if (!field.value) {
+                    isValid = false;
+                    field.classList.add('error');
+                } else {
+                    field.classList.remove('error');
+                }
+            });
+            return isValid;
+        }
+
+        async function submitReport() {
+            if (validateForm()) {
+                const formData = new FormData(document.getElementById('reportForm'));
+                const reportData = Object.fromEntries(formData.entries());
+                console.log("Submitting report:", reportData);
+                
+                addChatbotMessage("Report submitted successfully! Here's a summary of your report:");
+                for (const [key, value] of Object.entries(reportData)) {
+                    addChatbotMessage(`${key}: ${value}`);
+                }
+                
+                initApp();
+            } else {
+                addChatbotMessage("Please fill in all required fields before submitting the report.");
+            }
+        }
+
+        function handleSubmissionConfirmation(userInput) {
+            if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('submit')) {
+                submitReport();
+            } else {
+                addChatbotMessage("Okay, we won't submit the report yet. Let me know when you're ready to submit or if you need to make any changes.");
+                conversationState = 'filling_form';
+            }
+        }
+    </script>
+</body>
+</html>                
