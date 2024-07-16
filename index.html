@@ -176,7 +176,6 @@
     </div>
 
     <script>
-        let currentReportType = '';        
         const SECTION_FIELDS = {
             "Vessel Data": ["Vessel Name", "Vessel IMO", "Vessel Type"],
             "Voyage Data": ["Local Date", "Local Time", "UTC Offset", "Voyage ID", "Segment ID", "From Port", "To Port"],
@@ -299,6 +298,7 @@
         ];
 
         let currentVesselType = '';
+        let currentReportType = '';
         let currentSection = '';
         let currentField = '';
         let currentSectionIndex = 0;
@@ -310,37 +310,12 @@
 
         async function getOpenAIResponse(prompt) {
             try {
-                const messages = [
-                    {
-                        role: "system",
-                        content: `You are NaVya, an AI assistant for maritime reporting. Your task is to guide users through creating maritime reports, ensuring compliance with industry standards and regulations. 
-
-                        Vessel Types: Container vessel, Bulk Carrier, Oil Tanker, LPG tanker, LNG tanker
-
-                        Report Types: ${REPORT_TYPES.join(', ')}
-
-                        Instructions:
-                        1. Ask for the vessel type if not provided.
-                        2. Suggest appropriate report types based on the vessel type and logical sequence of maritime operations.
-                        3. Guide the user through filling out the report form, which is pre-filled with random values for certain fields.
-                        4. Ask for values for each non-pre-filled field, providing helpful guidance and reminders.
-                        5. Inform users they can change pre-filled values by saying "change value of [field name] to [new value]".
-                        6. Provide clear, concise responses and ask for one piece of information at a time.
-                        7. Ensure all required fields are filled before suggesting report submission.`
-                    },
-                    {
-                        role: "user",
-                        content: prompt
-                    }
-                ];
-
-                console.log('Sending request to OpenAI API...');
                 const response = await fetch('/.netlify/functions/openai-proxy', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ messages })
+                    body: JSON.stringify({ messages: [{ role: "user", content: prompt }] })
                 });
 
                 if (!response.ok) {
@@ -368,6 +343,52 @@
             messageDiv.innerHTML = `<p>${isUser ? '<strong>You:</strong> ' : '<strong>AI Assistant:</strong> '}${message}</p>`;
             chatbotContainer.appendChild(messageDiv);
             chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
+        }
+
+        async function handleUserInput(userInput) {
+            addChatbotMessage(userInput, true);
+
+            if (conversationState === 'confirm_submit') {
+                handleSubmissionConfirmation(userInput);
+                return;
+            }
+
+            try {
+                if (conversationState === 'start') {
+                    const vesselTypes = ["Container vessel", "Bulk Carrier", "Oil Tanker", "LPG tanker", "LNG tanker"];
+                    const matchedVesselType = vesselTypes.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
+                    if (matchedVesselType) {
+                        currentVesselType = matchedVesselType;
+                        generateFormFields(currentVesselType);
+                        conversationState = 'select_report_type';
+                        addChatbotMessage(`Great! You've selected ${currentVesselType}. Now, please specify the type of report you'd like to create.`);
+                    } else {
+                        addChatbotMessage("I didn't recognize that vessel type. Please choose from Container vessel, Bulk Carrier, Oil Tanker, LPG tanker, or LNG tanker.");
+                    }
+                } else if (conversationState === 'select_report_type') {
+                    const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
+                    if (matchedReportType) {
+                        currentReportType = matchedReportType;
+                        fillInitialFormFields();
+                        conversationState = 'filling_form';
+                        currentSectionIndex = 0;
+                        currentFieldIndex = 0;
+                        askNextField();
+                    } else {
+                        addChatbotMessage("I didn't recognize that report type. Please choose from the list of report types I provided earlier.");
+                    }
+                } else if (conversationState === 'filling_form') {
+                    if (userInput.toLowerCase() === 'null') {
+                        addChatbotMessage(`Skipping ${currentField}.`);
+                    } else {
+                        fillFormField(currentField, userInput);
+                    }
+                    askNextField();
+                }
+            } catch (error) {
+                console.error("Error in handleUserInput:", error);
+                addChatbotMessage("I'm experiencing some technical difficulties. Please try again later.");
+            }
         }
 
         function generateRandomLatLong() {
@@ -523,127 +544,35 @@
             }
         }
 
-        async function handleUserInput(userInput) {
-    addChatbotMessage(userInput, true);
-
-    if (conversationState === 'confirm_submit') {
-        handleSubmissionConfirmation(userInput);
-        return;
-    }
-
-    let prompt = `Current conversation state: ${conversationState}\nUser input: ${userInput}\n`;
-    prompt += `Vessel type: ${currentVesselType}\nCurrent section: ${currentSection}\nCurrent field: ${currentField}\n`;
-    prompt += `Current report type: ${currentReportType}\n`;
-    prompt += "Please provide a response to guide the user through the maritime reporting process.";
-
-    try {
-        console.log("Sending request to OpenAI API...");
-        const aiResponse = await getOpenAIResponse(prompt);
-        console.log("Received response from OpenAI API:", aiResponse);
-        addChatbotMessage(aiResponse);
-
-        // Process the AI response
-        if (conversationState === 'start' && !currentVesselType) {
-            const vesselTypes = ["Container vessel", "Bulk Carrier", "Oil Tanker", "LPG tanker", "LNG tanker"];
-            const matchedVesselType = vesselTypes.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
-            if (matchedVesselType) {
-                currentVesselType = matchedVesselType;
-                generateFormFields(currentVesselType);
-                conversationState = 'select_report_type';
-                addChatbotMessage("Great! Now, please specify the type of report you'd like to create.");
-            }
-        } else if (conversationState === 'select_report_type' && !currentReportType) {
-            const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
-            if (matchedReportType) {
-                currentReportType = matchedReportType;
-                fillInitialFormFields();
-                conversationState = 'filling_form';
-                currentSection = 'Vessel Data';
-                currentField = SECTION_FIELDS['Vessel Data'][0];
-                askNextField();
-            }
-        } else if (conversationState === 'filling_form') {
-            if (userInput.toLowerCase() === 'null') {
-                addChatbotMessage(`Skipping ${currentField}.`);
-            } else {
-                fillFormField(currentField, userInput);
-            }
-            askNextField();
-        }
-
-    } catch (error) {
-        console.error("Error in handleUserInput:", error);
-        addChatbotMessage("I'm experiencing some technical difficulties. Please try again later.");
-    }
-}
         function fillInitialFormFields() {
-    // Fill vessel type
-    fillFormField('Vessel Type', currentVesselType);
+            fillFormField('Vessel Type', currentVesselType);
 
-    // Fill current date and time
-    const now = new Date();
-    fillFormField('Local Date', now.toISOString().split('T')[0]);
-    fillFormField('Local Time', now.toTimeString().split(' ')[0]);
-    
-    // Fill UTC offset
-    const offset = -now.getTimezoneOffset() / 60;
-    fillFormField('UTC Offset', offset.toString());
-
-    // Generate and fill Voyage ID
-    const year = now.getFullYear().toString().substr(-2);
-    const ladenOrBallast = Math.random() < 0.5 ? 'L' : 'B';
-    const voyageId = `${Math.floor(Math.random() * 9 + 1)}/${year}/${ladenOrBallast}`;
-    fillFormField('Voyage ID', voyageId);
-
-    // Generate and fill Segment ID
-    const segmentId = Math.floor(Math.random() * 5 + 1).toString();
-    fillFormField('Segment ID', segmentId);
-
-    // Generate random ports
-    const ports = ['Singapore', 'Rotterdam', 'Shanghai', 'Los Angeles', 'Dubai', 'Hamburg', 'New York'];
-    const fromPort = ports[Math.floor(Math.random() * ports.length)];
-    let toPort;
-    do {
-        toPort = ports[Math.floor(Math.random() * ports.length)];
-    } while (toPort === fromPort);
-    fillFormField('From Port', fromPort);
-    fillFormField('To Port', toPort);
-
-    // Fill Event Type with the current report type
-    fillFormField('Event Type', currentReportType);
-}
-
-// Update the askNextField function
-function askNextField() {
-    const sections = Object.keys(SECTION_FIELDS);
-    while (currentSectionIndex < sections.length) {
-        currentSection = sections[currentSectionIndex];
-        let fields = SECTION_FIELDS[currentSection];
-        
-        if (typeof fields === 'object' && !Array.isArray(fields)) {
-            fields = fields[currentVesselType] || Object.values(fields).flat();
-        }
-
-        while (currentFieldIndex < fields.length) {
-            currentField = fields[currentFieldIndex];
-            const fieldId = currentField.replace(/\s+/g, '-').toLowerCase();
-            const inputElement = document.getElementById(fieldId);
+            const now = new Date();
+            fillFormField('Local Date', now.toISOString().split('T')[0]);
+            fillFormField('Local Time', now.toTimeString().split(' ')[0]);
             
-            if (inputElement && !inputElement.value) {
-                addChatbotMessage(`Please provide the ${currentField} (or type 'null' to skip):`);
-                expandSection(currentSection.replace(/\s+/g, '-').toLowerCase());
-                return;
-            }
-            currentFieldIndex++;
-        }
-        collapseSection(currentSection.replace(/\s+/g, '-').toLowerCase());
-        currentSectionIndex++;
-        currentFieldIndex = 0;
-    }
-    addChatbotMessage("Great job! You've completed all the fields. Would you like to submit the report now?");
-    conversationState = 'confirm_submit';
-}
+            const offset = -now.getTimezoneOffset() / 60;
+            fillFormField('UTC Offset', offset.toString());
 
+            const year = now.getFullYear().toString().substr(-2);
+            const ladenOrBallast = Math.random() < 0.5 ? 'L' : 'B';
+            const voyageId = `${Math.floor(Math.random() * 9 + 1)}/${year}/${ladenOrBallast}`;
+            fillFormField('Voyage ID', voyageId);
+
+            const segmentId = Math.floor(Math.random() * 5 + 1).toString();
+            fillFormField('Segment ID', segmentId);
+
+            const ports = ['Singapore', 'Rotterdam', 'Shanghai', 'Los Angeles', 'Dubai', 'Hamburg', 'New York'];
+            const fromPort = ports[Math.floor(Math.random() * ports.length)];
+            let toPort;
+            do {
+                toPort = ports[Math.floor(Math.random() * ports.length)];
+            } while (toPort === fromPort);
+            fillFormField('From Port', fromPort);
+            fillFormField('To Port', toPort);
+
+            fillFormField('Event Type', currentReportType);
+        }
 
         function fillFormField(field, value) {
             const fieldId = field.replace(/\s+/g, '-').toLowerCase();
@@ -653,29 +582,71 @@ function askNextField() {
             }
         }
 
-        function changeFieldValue(fieldName, newValue) {
-            const normalizedFieldName = fieldName.toLowerCase();
-            for (const section in SECTION_FIELDS) {
-                const fields = SECTION_FIELDS[section];
-                let sectionFields = [];
-
+        function askNextField() {
+            const sections = Object.keys(SECTION_FIELDS);
+            while (currentSectionIndex < sections.length) {
+                currentSection = sections[currentSectionIndex];
+                let fields = SECTION_FIELDS[currentSection];
+                
                 if (typeof fields === 'object' && !Array.isArray(fields)) {
-                    sectionFields = fields[currentVesselType] || Object.values(fields).flat();
-                } else {
-                    sectionFields = fields;
+                    fields = fields[currentVesselType] || Object.values(fields).flat();
                 }
 
-                const matchingField = sectionFields.find(field => field.toLowerCase().includes(normalizedFieldName));
-                if (matchingField) {
-                    const fieldId = matchingField.replace(/\s+/g, '-').toLowerCase();
+                while (currentFieldIndex < fields.length) {
+                    currentField = fields[currentFieldIndex];
+                    const fieldId = currentField.replace(/\s+/g, '-').toLowerCase();
                     const inputElement = document.getElementById(fieldId);
-                    if (inputElement) {
-                        inputElement.value = newValue;
+                    
+                    if (inputElement && !inputElement.value) {
+                        addChatbotMessage(`Please provide the ${currentField} (or type 'null' to skip):`);
+                        expandSection(currentSection.replace(/\s+/g, '-').toLowerCase());
                         return;
                     }
+                    currentFieldIndex++;
                 }
-}
-            addChatbotMessage(`I couldn't find a field matching "${fieldName}". Please check the field name and try again.`);
+                collapseSection(currentSection.replace(/\s+/g, '-').toLowerCase());
+                currentSectionIndex++;
+                currentFieldIndex = 0;
+            }
+            addChatbotMessage("Great job! You've completed all the fields. Would you like to submit the report now?");
+            conversationState = 'confirm_submit';
+        }
+
+        function handleSubmissionConfirmation(userInput) {
+            if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('submit')) {
+                submitReport();
+            } else {
+                addChatbotMessage("Okay, we won't submit the report yet. Let me know when you're ready to submit or if you need to make any changes.");
+                conversationState = 'filling_form';
+            }
+        }
+
+        function submitReport() {
+            const formData = new FormData(document.getElementById('reportForm'));
+            const reportData = Object.fromEntries(formData.entries());
+            console.log("Submitting report:", reportData);
+            
+            addChatbotMessage("Report submitted successfully! Here's a summary of your report:");
+            for (const [key, value] of Object.entries(reportData)) {
+                addChatbotMessage(`${key}: ${value}`);
+            }
+            
+            initApp();
+        }
+
+        function initApp() {
+            console.log("Initializing application...");
+            conversationState = 'start';
+            currentVesselType = '';
+            currentReportType = '';
+            currentSection = '';
+            currentField = '';
+            currentSectionIndex = 0;
+            currentFieldIndex = 0;
+            userExpandedSections.clear();
+            document.getElementById('dynamicSections').innerHTML = '';
+            document.getElementById('chatMessages').innerHTML = '';
+            addChatbotMessage("Welcome to NaVya, your maritime reporting assistant! I'm here to help you create a report. Please tell me the type of vessel you're reporting for (Container vessel, Bulk Carrier, Oil Tanker, LPG tanker, or LNG tanker).");
         }
 
         document.getElementById('userInput').addEventListener('keypress', async function(event) {
@@ -694,62 +665,7 @@ function askNextField() {
             conversationState = 'confirm_submit';
         });
 
-        function initApp() {
-    console.log("Initializing application...");
-    conversationState = 'start';
-    currentVesselType = '';
-    currentReportType = '';
-    currentSection = '';
-    currentField = '';
-    currentSectionIndex = 0;
-    currentFieldIndex = 0;
-    userExpandedSections.clear();
-    document.getElementById('dynamicSections').innerHTML = '';
-    document.getElementById('chatMessages').innerHTML = '';
-    addChatbotMessage("Welcome to NaVya, your maritime reporting assistant! I'm here to help you create a report. Please tell me the type of vessel you're reporting for.");
-}
-
         window.onload = initApp;
-
-        function validateForm() {
-            let isValid = true;
-            const requiredFields = document.querySelectorAll('input[required]');
-            requiredFields.forEach(field => {
-                if (!field.value) {
-                    isValid = false;
-                    field.classList.add('error');
-                } else {
-                    field.classList.remove('error');
-                }
-            });
-            return isValid;
-        }
-
-        async function submitReport() {
-            if (validateForm()) {
-                const formData = new FormData(document.getElementById('reportForm'));
-                const reportData = Object.fromEntries(formData.entries());
-                console.log("Submitting report:", reportData);
-                
-                addChatbotMessage("Report submitted successfully! Here's a summary of your report:");
-                for (const [key, value] of Object.entries(reportData)) {
-                    addChatbotMessage(`${key}: ${value}`);
-                }
-                
-                initApp();
-            } else {
-                addChatbotMessage("Please fill in all required fields before submitting the report.");
-            }
-        }
-
-        function handleSubmissionConfirmation(userInput) {
-            if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('submit')) {
-                submitReport();
-            } else {
-                addChatbotMessage("Okay, we won't submit the report yet. Let me know when you're ready to submit or if you need to make any changes.");
-                conversationState = 'filling_form';
-            }
-        }
     </script>
 </body>
-</html>                
+</html>
