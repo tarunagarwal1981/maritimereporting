@@ -267,7 +267,24 @@
             },
             "Draft": {
                 "Actual": ["Actual Forward Draft (m)", "Actual Aft Draft (m)", "Displacement (mt)", "Water Depth (m)"]
-            }
+            },
+            "Bunker": [
+                "Bunker Type",
+                "Quantity (mt)",
+                "Density at 15°C (kg/m3)",
+                "Viscosity at 50°C (cSt)",
+                "Flash Point (°C)",
+                "Sulphur Content (%)",
+                "Water Content (%)",
+                "Ash Content (%)",
+                "Vanadium (mg/kg)",
+                "Aluminium + Silicon (mg/kg)",
+                "Pour Point (°C)",
+                "Supplier Name",
+                "Delivery Date",
+                "Delivery Port",
+                "BDN Number"
+            ]
         };
 
         let currentVesselType = '';
@@ -279,6 +296,37 @@
         let userExpandedSections = new Set();
 
         const chatbotContainer = document.getElementById('chatMessages');
+
+        const REPORT_TYPES = [
+            "Arrival", "Departure", "Begin of offhire", "End of offhire", "Arrival STS", "Departure STS",
+            "STS", "Begin canal passage", "End canal passage", "Begin of sea passage", "End of sea passage",
+            "Begin Anchoring/Drifting", "End Anchoring/Drifting", "Noon (Position) - Sea passage",
+            "Noon (Position) - Port", "Noon (Position) - River", "Noon (Position) - Stoppage",
+            "ETA update", "Begin fuel change over", "End fuel change over", "Change destination (Deviation)",
+            "Begin of deviation", "End of deviation", "Entering special area", "Leaving special area",
+            "Other event", "Bunkering"
+        ];
+
+        async function getOpenAIResponse(prompt) {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAIAPIKEY}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-3.5-turbo",
+                    messages: [
+                        {role: "system", content: "You are NaVya, a maritime reporting assistant. Guide users through creating maritime reports, ensuring compliance with industry standards and regulations. Suggest report types from the provided list, considering the logical sequence of maritime operations. Assist users in filling out the report form, which is pre-filled with random values for certain fields. Ask for values for each non-pre-filled field, and provide helpful guidance."},
+                        {role: "user", content: prompt}
+                    ],
+                    max_tokens: 150
+                })
+            });
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
 
         function addChatbotMessage(message, isUser = false) {
             const messageDiv = document.createElement('div');
@@ -445,60 +493,57 @@
         async function handleUserInput(userInput) {
             addChatbotMessage(userInput, true);
 
-            if (userInput.toLowerCase().startsWith('change value of')) {
-                const parts = userInput.split(' to ');
-                if (parts.length === 2) {
-                    const fieldName = parts[0].replace('change value of ', '').trim();
-                    const newValue = parts[1].trim();
-                    changeFieldValue(fieldName, newValue);
-                    addChatbotMessage(`I've updated the value of ${fieldName} to ${newValue}. Let's continue with the next field.`);
-                    askNextField();
-                } else {
-                    addChatbotMessage("I'm sorry, I didn't understand that. Please use the format 'change value of [field name] to [new value]'.");
-                }
-                return;
-            }
+            let prompt = `Current conversation state: ${conversationState}\nUser input: ${userInput}\n`;
+            prompt += `Vessel type: ${currentVesselType}\nCurrent section: ${currentSection}\nCurrent field: ${currentField}\n`;
+            prompt += "Please provide a response to guide the user through the maritime reporting process.";
 
-            switch (conversationState) {
-                case 'start':
-                    if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('ready')) {
-                        addChatbotMessage("Great! Let's begin. What type of vessel are you reporting for? Please choose from Oil Tanker, LPG Tanker, or LNG Tanker.");
-                        conversationState = 'select_vessel_type';
-                    } else {
-                        addChatbotMessage("No problem. When you're ready to start filling the form, just let me know by saying 'ready' or 'yes'.");
-                    }
-                    break;
-                case 'select_vessel_type':
-                    const vesselTypes = ["Oil Tanker", "LPG Tanker", "LNG Tanker"];
-                    const normalizedInput = userInput.toLowerCase();
-                    const matchedVesselType = vesselTypes.find(type => type.toLowerCase() === normalizedInput);
+            try {
+                const aiResponse = await getOpenAIResponse(prompt);
+                addChatbotMessage(aiResponse);
+
+                if (aiResponse.toLowerCase().includes("vessel type")) {
+                    conversationState = 'select_vessel_type';
+                } else if (aiResponse.toLowerCase().includes("report type")) {
+                    conversationState = 'select_report_type';
+                } else if (aiResponse.toLowerCase().includes("let's begin filling")) {
+                    conversationState = 'filling_form';
+                    currentSectionIndex = 0;
+                    currentFieldIndex = 0;
+                    askNextField();
+                } else if (aiResponse.toLowerCase().includes("submit the report")) {
+                    conversationState = 'confirm_submit';
+                }
+
+                const fieldUpdateMatch = aiResponse.match(/change value of (.*?) to (.*)/i);
+                if (fieldUpdateMatch) {
+                    const [, fieldName, newValue] = fieldUpdateMatch;
+                    changeFieldValue(fieldName, newValue);
+                }
+
+                if (conversationState === 'select_vessel_type') {
+                    const vesselTypes = ["Container vessel", "Bulk Carrier", "Oil Tanker", "LPG tanker", "LNG tanker"];
+                    const matchedVesselType = vesselTypes.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
                     if (matchedVesselType) {
                         currentVesselType = matchedVesselType;
                         generateFormFields(currentVesselType);
-                        conversationState = 'filling_form';
-                        currentSectionIndex = 0;
-                        currentFieldIndex = 0;
-                        askNextField();
-                    } else {
-                        addChatbotMessage("I'm sorry, I didn't recognize that vessel type. Please choose from Oil Tanker, LPG Tanker, or LNG Tanker.");
+                        conversationState = 'select_report_type';
                     }
-                    break;
-                case 'filling_form':
+                } else if (conversationState === 'select_report_type') {
+                    const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
+                    if (matchedReportType) {
+                        currentSection = 'Vessel Data';
+                        currentField = SECTION_FIELDS['Vessel Data'][0];
+                        conversationState = 'filling_form';
+                        askNextField();
+                    }
+                } else if (conversationState === 'filling_form') {
                     fillFormField(currentField, userInput);
                     askNextField();
-                    break;
-                case 'confirm_submit':
-                    if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('submit')) {
-                        addChatbotMessage("Great! Your report has been submitted. Is there anything else I can help you with?");
-                        conversationState = 'start';
-                    } else {
-                        addChatbotMessage("Okay, we won't submit the report yet. Let's continue filling the form.");
-                        askNextField();
-                    }
-                    break;
-                default:
-                    addChatbotMessage("I'm not sure how to proceed. If you'd like to start a new report, please say 'new report'.");
-                    conversationState = 'start';
+                }
+
+            } catch (error) {
+                console.error("Error calling OpenAI API:", error);
+                addChatbotMessage("I'm sorry, I'm having trouble processing your request. Please try again later.");
             }
         }
 
@@ -582,7 +627,7 @@
         });
 
         // Initialize the chatbot
-        addChatbotMessage("Hello! I'm here to help you fill out the maritime report. Are you ready to begin?");
+        addChatbotMessage("Welcome to NaVya, your maritime reporting assistant! I'm here to help you create a report. Please tell me the type of vessel you're reporting for.");
     </script>
 </body>
 </html>
