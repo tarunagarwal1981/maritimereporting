@@ -308,56 +308,57 @@
         const chatbotContainer = document.getElementById('chatMessages');
 
         async function getOpenAIResponse(prompt) {
-  try {
-    const messages = [
-      {
-        role: "system",
-        content: `You are NaVya, an AI assistant for maritime reporting. Your task is to guide users through creating maritime reports, ensuring compliance with industry standards and regulations. 
+            try {
+                const messages = [
+                    {
+                        role: "system",
+                        content: `You are NaVya, an AI assistant for maritime reporting. Your task is to guide users through creating maritime reports, ensuring compliance with industry standards and regulations. 
 
-        Vessel Types: Container vessel, Bulk Carrier, Oil Tanker, LPG tanker, LNG tanker
+                        Vessel Types: Container vessel, Bulk Carrier, Oil Tanker, LPG tanker, LNG tanker
 
-        Report Types: ${REPORT_TYPES.join(', ')}
+                        Report Types: ${REPORT_TYPES.join(', ')}
 
-        Instructions:
-        1. Ask for the vessel type if not provided.
-        2. Suggest appropriate report types based on the vessel type and logical sequence of maritime operations.
-        3. Guide the user through filling out the report form, which is pre-filled with random values for certain fields.
-        4. Ask for values for each non-pre-filled field, providing helpful guidance and reminders.
-        5. Inform users they can change pre-filled values by saying "change value of [field name] to [new value]".
-        6. Provide clear, concise responses and ask for one piece of information at a time.
-        7. Ensure all required fields are filled before suggesting report submission.`
-      },
-      {
-        role: "user",
-        content: prompt
-      }
-    ];
+                        Instructions:
+                        1. Ask for the vessel type if not provided.
+                        2. Suggest appropriate report types based on the vessel type and logical sequence of maritime operations.
+                        3. Guide the user through filling out the report form, which is pre-filled with random values for certain fields.
+                        4. Ask for values for each non-pre-filled field, providing helpful guidance and reminders.
+                        5. Inform users they can change pre-filled values by saying "change value of [field name] to [new value]".
+                        6. Provide clear, concise responses and ask for one piece of information at a time.
+                        7. Ensure all required fields are filled before suggesting report submission.`
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ];
 
-    const response = await fetch('/api/openai-proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ messages })
-    });
+                console.log('Sending request to OpenAI API...');
+                const response = await fetch('/.netlify/functions/openai-proxy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ messages })
+                });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
-    const data = await response.json();
-    console.log("Received response from OpenAI API:", data);
+                const data = await response.json();
+                console.log("Received response from OpenAI API:", data);
 
-    if (!data.choices || data.choices.length === 0) {
-      throw new Error('No response from OpenAI API');
-    }
+                if (!data.choices || data.choices.length === 0) {
+                    throw new Error('No response from OpenAI API');
+                }
 
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error("Error in OpenAI API call:", error);
-    throw error;
-  }
-}
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.error("Error in OpenAI API call:", error);
+                throw error;
+            }
+        }
 
         function addChatbotMessage(message, isUser = false) {
             const messageDiv = document.createElement('div');
@@ -522,77 +523,78 @@
         }
 
         async function handleUserInput(userInput) {
-  addChatbotMessage(userInput, true);
+            addChatbotMessage(userInput, true);
 
-  if (conversationState === 'confirm_submit') {
-    handleSubmissionConfirmation(userInput);
-    return;
-  }
+            if (conversationState === 'confirm_submit') {
+                handleSubmissionConfirmation(userInput);
+                return;
+            }
 
-  let prompt = `Current conversation state: ${conversationState}\nUser input: ${userInput}\n`;
-  prompt += `Vessel type: ${currentVesselType}\nCurrent section: ${currentSection}\nCurrent field: ${currentField}\n`;
-  prompt += "Please provide a response to guide the user through the maritime reporting process.";
+            let prompt = `Current conversation state: ${conversationState}\nUser input: ${userInput}\n`;
+            prompt += `Vessel type: ${currentVesselType}\nCurrent section: ${currentSection}\nCurrent field: ${currentField}\n`;
+            prompt += "Please provide a response to guide the user through the maritime reporting process.";
 
-  try {
-    console.log("Sending request to OpenAI API...");
-    const aiResponse = await getOpenAIResponse(prompt);
-    console.log("Received response from OpenAI API:", aiResponse);
-    addChatbotMessage(aiResponse);
+            try {
+                console.log("Sending request to OpenAI API...");
+                const aiResponse = await getOpenAIResponse(prompt);
+                console.log("Received response from OpenAI API:", aiResponse);
+                addChatbotMessage(aiResponse);
 
-    // Process the AI response
-    if (aiResponse.toLowerCase().includes("vessel type")) {
-      conversationState = 'select_vessel_type';
-    } else if (aiResponse.toLowerCase().includes("report type")) {
-      conversationState = 'select_report_type';
-    } else if (aiResponse.toLowerCase().includes("let's begin filling")) {
-      conversationState = 'filling_form';
-      currentSectionIndex = 0;
-      currentFieldIndex = 0;
-      askNextField();
-    } else if (aiResponse.toLowerCase().includes("submit the report")) {
-      conversationState = 'confirm_submit';
-    }
+                // Process the AI response
+                if (aiResponse.toLowerCase().includes("vessel type")) {
+                    conversationState = 'select_vessel_type';
+                } else if (aiResponse.toLowerCase().includes("report type")) {
+                    conversationState = 'select_report_type';
+                } else if (aiResponse.toLowerCase().includes("let's begin filling")) {
+                    conversationState = 'filling_form';
+                    currentSectionIndex = 0;
+                    currentFieldIndex = 0;
+                    askNextField();
+                } else if (aiResponse.toLowerCase().includes("submit the report")) {
+                    conversationState = 'confirm_submit';
+                }
 
-    // Handle field value changes
-    const fieldUpdateMatch = aiResponse.match(/change value of (.*?) to (.*)/i);
-    if (fieldUpdateMatch) {
-      const [, fieldName, newValue] = fieldUpdateMatch;
-      changeFieldValue(fieldName, newValue);
-    }
+                // Handle field value changes
+                const fieldUpdateMatch = aiResponse.match(/change value of (.*?) to (.*)/i);
+                if (fieldUpdateMatch) {
+                    const [, fieldName, newValue] = fieldUpdateMatch;
+                    changeFieldValue(fieldName, newValue);
+                }
 
-    // Process user input based on conversation state
-    if (conversationState === 'select_vessel_type') {
-      const vesselTypes = ["Container vessel", "Bulk Carrier", "Oil Tanker", "LPG tanker", "LNG tanker"];
-      const matchedVesselType = vesselTypes.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
-      if (matchedVesselType) {
-        currentVesselType = matchedVesselType;
-        generateFormFields(currentVesselType);
-        conversationState = 'select_report_type';
-      }
-    } else if (conversationState === 'select_report_type') {
-      const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
-      if (matchedReportType) {
-        currentSection = 'Vessel Data';
-        currentField = SECTION_FIELDS['Vessel Data'][0];
-        conversationState = 'filling_form';
-        askNextField();
-      }
-    } else if (conversationState === 'filling_form') {
-      fillFormField(currentField, userInput);
-      askNextField();
-    }
+                // Process user input based on conversation state
+                if (conversationState === 'select_vessel_type') {
+                    const vesselTypes = ["Container vessel", "Bulk Carrier", "Oil Tanker", "LPG tanker", "LNG tanker"];
+                    const matchedVesselType = vesselTypes.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
+                    if (matchedVesselType) {
+                        currentVesselType = matchedVesselType;
+                        generateFormFields(currentVesselType);
+                        conversationState = 'select_report_type';
+                    }
+                } else if (conversationState === 'select_report_type') {
+                    const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
+                    if (matchedReportType) {
+                        currentSection = 'Vessel Data';
+                        currentField = SECTION_FIELDS['Vessel Data'][0];
+                        conversationState = 'filling_form';
+                        askNextField();
+                    }
+                } else if (conversationState === 'filling_form') {
+                    fillFormField(currentField, userInput);
+                    askNextField();
+                }
 
-  } catch (error) {
-    console.error("Error in handleUserInput:", error);
-    if (error.message.includes('HTTP error!')) {
-      addChatbotMessage("I'm having trouble connecting to my knowledge base. Please check your internet connection and try again.");
-    } else if (error.message.includes('No response from OpenAI API')) {
-      addChatbotMessage("I didn't receive a proper response from my knowledge base. Please try asking your question again.");
-    } else {
-      addChatbotMessage("I'm experiencing some technical difficulties. Please try again later or contact support if the problem persists.");
-    }
-  }
-}
+            } catch (error) {
+                console.error("Error in handleUserInput:", error);
+                if (error.message.includes('HTTP error!')) {
+                    addChatbotMessage("I'm having trouble connecting to my knowledge base. Please check your internet connection and try again.");
+                } else if (error.message.includes('No response from OpenAI API')) {
+                    addChatbotMessage("I didn't receive a proper response from my knowledge base. Please try asking your question again.");
+                } else {
+                    addChatbotMessage("I'm experiencing some technical difficulties. Please try again later or contact support if the problem persists.");
+                }
+            }
+        }
+
         function askNextField() {
             const sections = Object.keys(SECTION_FIELDS);
             while (currentSectionIndex < sections.length) {
@@ -652,81 +654,3 @@
                         return;
                     }
                 }
-            }
-            addChatbotMessage(`I couldn't find a field matching "${fieldName}". Please check the field name and try again.`);
-        }
-
-        document.getElementById('userInput').addEventListener('keypress', async function(event) {
-            if (event.key === 'Enter') {
-                const userInput = event.target.value.trim();
-                event.target.value = '';
-                if (userInput) {
-                    await handleUserInput(userInput);
-                }
-            }
-        });
-
-        document.getElementById('reportForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            addChatbotMessage("It looks like you're trying to submit the form. Are you sure you want to submit the report now?");
-            conversationState = 'confirm_submit';
-        });
-
-        function initApp() {
-            console.log("Initializing application...");
-            conversationState = 'start';
-            currentVesselType = '';
-            currentSection = '';
-            currentField = '';
-            currentSectionIndex = 0;
-            currentFieldIndex = 0;
-            userExpandedSections.clear();
-            document.getElementById('dynamicSections').innerHTML = '';
-            document.getElementById('chatMessages').innerHTML = '';
-            addChatbotMessage("Welcome to NaVya, your maritime reporting assistant! I'm here to help you create a report. Please tell me the type of vessel you're reporting for.");
-        }
-
-        window.onload = initApp;
-
-        function validateForm() {
-            let isValid = true;
-            const requiredFields = document.querySelectorAll('input[required]');
-            requiredFields.forEach(field => {
-                if (!field.value) {
-                    isValid = false;
-                    field.classList.add('error');
-                } else {
-                    field.classList.remove('error');
-                }
-            });
-            return isValid;
-        }
-
-        async function submitReport() {
-            if (validateForm()) {
-                const formData = new FormData(document.getElementById('reportForm'));
-                const reportData = Object.fromEntries(formData.entries());
-                console.log("Submitting report:", reportData);
-                
-                addChatbotMessage("Report submitted successfully! Here's a summary of your report:");
-                for (const [key, value] of Object.entries(reportData)) {
-                    addChatbotMessage(`${key}: ${value}`);
-                }
-                
-                initApp();
-            } else {
-                addChatbotMessage("Please fill in all required fields before submitting the report.");
-            }
-        }
-
-        function handleSubmissionConfirmation(userInput) {
-            if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('submit')) {
-                submitReport();
-            } else {
-                addChatbotMessage("Okay, we won't submit the report yet. Let me know when you're ready to submit or if you need to make any changes.");
-                conversationState = 'filling_form';
-            }
-        }
-    </script>
-</body>
-</html>
