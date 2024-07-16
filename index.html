@@ -522,78 +522,77 @@
         }
 
         async function handleUserInput(userInput) {
-            addChatbotMessage(userInput, true);
+  addChatbotMessage(userInput, true);
 
-            if (conversationState === 'confirm_submit') {
-                handleSubmissionConfirmation(userInput);
-                return;
-            }
+  if (conversationState === 'confirm_submit') {
+    handleSubmissionConfirmation(userInput);
+    return;
+  }
 
-            let prompt = `Current conversation state: ${conversationState}\nUser input: ${userInput}\n`;
-            prompt += `Vessel type: ${currentVesselType}\nCurrent section: ${currentSection}\nCurrent field: ${currentField}\n`;
-            prompt += "Please provide a response to guide the user through the maritime reporting process.";
+  let prompt = `Current conversation state: ${conversationState}\nUser input: ${userInput}\n`;
+  prompt += `Vessel type: ${currentVesselType}\nCurrent section: ${currentSection}\nCurrent field: ${currentField}\n`;
+  prompt += "Please provide a response to guide the user through the maritime reporting process.";
 
-            try {
-                console.log("Sending request to OpenAI API...");
-                const aiResponse = await getOpenAIResponse(prompt);
-                console.log("Received response from OpenAI API:", aiResponse);
-                addChatbotMessage(aiResponse);
+  try {
+    console.log("Sending request to OpenAI API...");
+    const aiResponse = await getOpenAIResponse(prompt);
+    console.log("Received response from OpenAI API:", aiResponse);
+    addChatbotMessage(aiResponse);
 
-                // Process the AI response
-                if (aiResponse.toLowerCase().includes("vessel type")) {
-                    conversationState = 'select_vessel_type';
-                } else if (aiResponse.toLowerCase().includes("report type")) {
-                    conversationState = 'select_report_type';
-                } else if (aiResponse.toLowerCase().includes("let's begin filling")) {
-                    conversationState = 'filling_form';
-                    currentSectionIndex = 0;
-                    currentFieldIndex = 0;
-                    askNextField();
-                } else if (aiResponse.toLowerCase().includes("submit the report")) {
-                    conversationState = 'confirm_submit';
-                }
+    // Process the AI response
+    if (aiResponse.toLowerCase().includes("vessel type")) {
+      conversationState = 'select_vessel_type';
+    } else if (aiResponse.toLowerCase().includes("report type")) {
+      conversationState = 'select_report_type';
+    } else if (aiResponse.toLowerCase().includes("let's begin filling")) {
+      conversationState = 'filling_form';
+      currentSectionIndex = 0;
+      currentFieldIndex = 0;
+      askNextField();
+    } else if (aiResponse.toLowerCase().includes("submit the report")) {
+      conversationState = 'confirm_submit';
+    }
 
-                // Handle field value changes
-                const fieldUpdateMatch = aiResponse.match(/change value of (.*?) to (.*)/i);
-                if (fieldUpdateMatch) {
-                    const [, fieldName, newValue] = fieldUpdateMatch;
-                    changeFieldValue(fieldName, newValue);
-                }
+    // Handle field value changes
+    const fieldUpdateMatch = aiResponse.match(/change value of (.*?) to (.*)/i);
+    if (fieldUpdateMatch) {
+      const [, fieldName, newValue] = fieldUpdateMatch;
+      changeFieldValue(fieldName, newValue);
+    }
 
-                // Process user input based on conversation state
-                if (conversationState === 'select_vessel_type') {
-                    const vesselTypes = ["Container vessel", "Bulk Carrier", "Oil Tanker", "LPG tanker", "LNG tanker"];
-                    const matchedVesselType = vesselTypes.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
-                    if (matchedVesselType) {
-                        currentVesselType = matchedVesselType;
-                        generateFormFields(currentVesselType);
-                        conversationState = 'select_report_type';
-                    }
-                } else if (conversationState === 'select_report_type') {
-                    const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
-                    if (matchedReportType) {
-                        currentSection = 'Vessel Data';
-                        currentField = SECTION_FIELDS['Vessel Data'][0];
-                        conversationState = 'filling_form';
-                        askNextField();
-                    }
-                } else if (conversationState === 'filling_form') {
-                    fillFormField(currentField, userInput);
-                    askNextField();
-                }
+    // Process user input based on conversation state
+    if (conversationState === 'select_vessel_type') {
+      const vesselTypes = ["Container vessel", "Bulk Carrier", "Oil Tanker", "LPG tanker", "LNG tanker"];
+      const matchedVesselType = vesselTypes.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
+      if (matchedVesselType) {
+        currentVesselType = matchedVesselType;
+        generateFormFields(currentVesselType);
+        conversationState = 'select_report_type';
+      }
+    } else if (conversationState === 'select_report_type') {
+      const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
+      if (matchedReportType) {
+        currentSection = 'Vessel Data';
+        currentField = SECTION_FIELDS['Vessel Data'][0];
+        conversationState = 'filling_form';
+        askNextField();
+      }
+    } else if (conversationState === 'filling_form') {
+      fillFormField(currentField, userInput);
+      askNextField();
+    }
 
-            } catch (error) {
-                console.error("Error in handleUserInput:", error);
-                if (error.message.includes('HTTP error!')) {
-                    addChatbotMessage("I'm having trouble connecting to my knowledge base. Please check your internet connection and try again.");
-                } else if (error.message.includes('No response from OpenAI API')) {
-                    addChatbotMessage("I didn't receive a proper response from my knowledge base. Please try asking your question again.");
-                } else {
-                    addChatbotMessage("I'm experiencing some technical difficulties. Please try again later or contact support if the problem persists.");
-                }
-            }
-        }
-
+  } catch (error) {
+    console.error("Error in handleUserInput:", error);
+    if (error.message.includes('HTTP error!')) {
+      addChatbotMessage("I'm having trouble connecting to my knowledge base. Please check your internet connection and try again.");
+    } else if (error.message.includes('No response from OpenAI API')) {
+      addChatbotMessage("I didn't receive a proper response from my knowledge base. Please try asking your question again.");
+    } else {
+      addChatbotMessage("I'm experiencing some technical difficulties. Please try again later or contact support if the problem persists.");
+    }
+  }
+}
         function askNextField() {
             const sections = Object.keys(SECTION_FIELDS);
             while (currentSectionIndex < sections.length) {
