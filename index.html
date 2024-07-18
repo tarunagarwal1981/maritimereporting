@@ -432,15 +432,15 @@
                 const fields = SECTION_FIELDS[section];
                 let sectionFields = [];
 
-                //if (typeof fields === 'object' && !Array.isArray(fields)) {
-                    //if (fields[vesselType]) {
-                        //sectionFields = fields[vesselType];
-                    //} else if (section !== "Cargo" && section !== "Fuel Consumption" && section !== "Fuel Allocation") {
-                        //sectionFields = fields;
-                    //}
-                //} else {
-                    //sectionFields = fields;
-                //}
+                if (typeof fields === 'object' && !Array.isArray(fields)) {
+                    if (fields[vesselType]) {
+                        sectionFields = fields[vesselType];
+                    } else if (section !== "Cargo" && section !== "Fuel Consumption" && section !== "Fuel Allocation") {
+                        sectionFields = fields;
+                    }
+                } else {
+                    sectionFields = fields;
+                }
 
                 if (sectionFields && Object.keys(sectionFields).length > 0) {
                     const sectionDiv = document.createElement('div');
