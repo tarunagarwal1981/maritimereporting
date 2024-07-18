@@ -179,7 +179,7 @@
         const SECTION_FIELDS = {
             "Vessel Data": ["Vessel Name", "Vessel IMO", "Vessel Type"],
             "Voyage Data": ["Local Date", "Local Time", "UTC Offset", "Voyage ID", "Segment ID", "From Port", "To Port"],
-            "Event Data": ["Event Type", "Time Elapsed (hours)", "Sailing Time (hours)", "Anchor Time (hours)", "Ice Time (hours)", "Maneuvering (hours)", "Loading/Unloading (hours)", "Drifting (hours)"],
+            "Event Data": ["Event Type", "Sailing Time (hours)", "Ice Time (hours)", "Drifting (hours)"],
             "Position": ["Latitude Degrees", "Latitude Minutes", "Latitude Direction", "Longitude Degrees", "Longitude Minutes", "Longitude Direction"],
             "Cargo": {
                 "Oil Tanker": ["Cargo Weight (mt)"],
@@ -195,10 +195,10 @@
                     "Incinerator": ["Incinerator MGO (mt)"]
                 },
                 "LPG Tanker": {
-                    "Main Engine": ["ME LFO (mt)", "ME MGO (mt)", "ME LNG (mt)", "ME LPG Propane (mt)", "ME LPG Butane (mt)", "ME Other (mt)", "ME Other Fuel Type"],
-                    "Auxiliary Engines": ["AE LFO (mt)", "AE MGO (mt)", "AE LNG (mt)", "AE LPG Propane (mt)", "AE LPG Butane (mt)", "AE Other (mt)", "AE Other Fuel Type"],
-                    "Boilers": ["Boiler LFO (mt)", "Boiler MGO (mt)", "Boiler LNG (mt)", "Boiler LPG Propane (mt)", "Boiler LPG Butane (mt)", "Boiler Other (mt)", "Boiler Other Fuel Type"],
-                    "IGG": ["IGG LFO (mt)", "IGG MGO (mt)", "IGG LNG (mt)", "IGG LPG Propane (mt)", "IGG LPG Butane (mt)", "IGG Other (mt)", "IGG Other Fuel Type"],
+                    "Main Engine": ["ME LFO (mt)", "ME MGO (mt)", "ME LPG Propane (mt)", "ME LPG Butane (mt)"],
+                    "Auxiliary Engines": ["AE LFO (mt)", "AE MGO (mt)", "AE LPG Propane (mt)", "AE LPG Butane (mt)"],
+                    "Aux Boilers": ["Aux Boiler LFO (mt)", "Aux Boiler MGO (mt)"],
+                    "IGG": ["IGG MGO (mt)"],
                     "Incinerator": ["Incinerator MGO (mt)"]
                 },
                 "LNG Tanker": {
@@ -210,7 +210,7 @@
                     "Incinerator": ["Incinerator MGO (mt)"]
                 }
             },
-            "ROB": ["LFO ROB (mt)", "MGO ROB (mt)", "LNG ROB (mt)", "Other ROB (mt)", "Other Fuel Type ROB", "Total Fuel ROB (mt)"],
+            "ROB": ["LFO ROB (mt)", "MGO ROB (mt)"],
             "Fuel Allocation": {
                 "Oil Tanker": {
                     "Cargo Heating": [
@@ -231,15 +231,12 @@
                 },
                 "LPG Tanker": {
                     "Cargo Cooling": [
-                        "Cargo Cooling LFO (mt)", "Cargo Cooling MGO (mt)", "Cargo Cooling LNG (mt)",
-                        "Cargo Cooling LPG Propane (mt)", "Cargo Cooling LPG Butane (mt)",
-                        "Cargo Cooling Other (mt)", "Cargo Cooling Other Fuel Type",
+                        "Cargo Cooling LFO (mt)", "Cargo Cooling MGO (mt)", "Cargo Cooling LPG Propane (mt)", "Cargo Cooling LPG Butane (mt)",
                         "Cargo Cooling Work (kWh)", "Cargo Cooling SFOC (g/kWh)"
                     ],
                     "Discharge Pump": [
-                        "Discharge Pump LFO (mt)", "Discharge Pump MGO (mt)", "Discharge Pump LNG (mt)",
+                        "Discharge Pump LFO (mt)", "Discharge Pump MGO (mt)",
                         "Discharge Pump LPG Propane (mt)", "Discharge Pump LPG Butane (mt)",
-                        "Discharge Pump Other (mt)", "Discharge Pump Other Fuel Type",
                         "Discharge Pump Work (kWh)", "Discharge Pump SFOC (g/kWh)"
                     ],
                     "Shore-Side Electricity": ["Shore-Side Electricity Work (kWh)"]
