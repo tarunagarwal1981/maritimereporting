@@ -717,10 +717,15 @@
             for (const [key, value] of Object.entries(reportData)) {
                 addChatbotMessage(`${key}: ${value}`);
             }
-            
+            document.getElementById('reportForm').reset();
             initApp();
         }
+        document.getElementById('reportForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            submitReport();
+        });
 
+        
         function initApp() {
             console.log("Initializing application...");
             conversationState = 'select_report_type';
