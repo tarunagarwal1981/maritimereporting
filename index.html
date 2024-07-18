@@ -200,8 +200,7 @@
             "Voyage Data": ["Local Date", "Local Time", "UTC Offset", "Voyage ID", "Segment ID", "From Port", "To Port"],
             "Event Data": [["Event Type", "Sailing Time (hours)", "Ice Time (hours)", "Drifting (hours)"]],
             "Position": [
-                ["Latitude Degrees", "Latitude Minutes", "Latitude Direction"],
-                ["Longitude Degrees", "Longitude Minutes", "Longitude Direction"]
+                ["Latitude Degrees", "Latitude Minutes", "Latitude Direction", "Longitude Degrees", "Longitude Minutes", "Longitude Direction"]
             ],
             "Cargo": {
                 "LPG Tanker": ["Cargo Volume (m3)"]
@@ -211,8 +210,7 @@
                     "Main Engine": [["ME LFO (mt)", "ME MGO (mt)", "ME LPG Propane (mt)", "ME LPG Butane (mt)"]],
                     "Auxiliary Engines": [["AE LFO (mt)", "AE MGO (mt)", "AE LPG Propane (mt)", "AE LPG Butane (mt)"]],
                     "Aux Boilers": [["Aux Boiler LFO (mt)", "Aux Boiler MGO (mt)"]],
-                    "IGG": ["IGG MGO (mt)"],
-                    "Incinerator": ["Incinerator MGO (mt)"]
+                    "Others": [["IGG MGO (mt)", "Incinerator MGO (mt)"]]
                 }
             },
             "ROB": ["LFO ROB (mt)", "MGO ROB (mt)"],
@@ -447,16 +445,16 @@
                         let value = '';
                         let infoMessage = '';
 
-                        if (section === 'Position' && field.includes('Latitude')) {
-                            if (field.includes('Degrees')) value = randomPosition.latDeg;
-                            else if (field.includes('Minutes')) value = randomPosition.latMin;
-                            else if (field.includes('Direction')) value = randomPosition.latDir;
-                            infoMessage = 'Current AIS position data';
-                        } else if (section === 'Position' && field.includes('Longitude')) {
-                            if (field.includes('Degrees')) value = randomPosition.longDeg;
-                            else if (field.includes('Minutes')) value = randomPosition.longMin;
-                            else if (field.includes('Direction')) value = randomPosition.longDir;
-                            infoMessage = 'Current AIS position data';
+                        if (section === 'Position') {
+                            if (field.includes('Latitude Degrees')) value = randomPosition.latDeg;
+                            else if (field.includes('Latitude Minutes')) value = randomPosition.latMin;
+                            else if (field.includes('Latitude Direction')) value = randomPosition.latDir;
+                            else if (field.includes('Longitude Degrees')) value = randomPosition.longDeg;
+                            else if (field.includes('Longitude Minutes')) value = randomPosition.longMin;
+                            else if (field.includes('Longitude Direction')) value = randomPosition.longDir;
+                            if (field.includes('Longitude Direction')) {
+                                infoMessage = 'Current AIS position data';
+                            }
                         } else if (field === 'Vessel Name') {
                             value = randomVesselName;
                         } else if (field === 'Vessel IMO') {
@@ -464,6 +462,27 @@
                         } else if (field.includes('LFO') && parentSection === 'Main Engine') {
                             value = generateRandomConsumption(20, 25);
                             infoMessage = 'MFM figures since last report';
+                        } else if (field === 'AE LFO (mt)') {
+                            value = generateRandomConsumption(2, 5);
+                            infoMessage = 'MFM figures since last report';
+                        } else if (field === 'Aux Boiler LFO (mt)') {
+                            value = generateRandomConsumption(1, 3);
+                            infoMessage = 'MFM figures since last report';
+                        } else if (field === 'LFO ROB (mt)') {
+                            value = generateRandomConsumption(500, 2000);
+                        } else if (field === 'MGO ROB (mt)') {
+                            value = generateRandomConsumption(300, 1000);
+                        } else if (section === 'Weather') {
+                            value = generateRandomWeatherData(field);
+                            if (field === 'Wind Direction (degrees)') {
+                                infoMessage = 'Data from weather service';
+                            }
+                        } else if (field.includes('Draft')) {
+                            const draft = (Math.random() * (12 - 8) + 8).toFixed(2);
+                            value = draft;
+                            if (field === 'Actual Forward Draft (m)') {
+                                infoMessage = 'Filled from previous report';
+                            }
                         }
 
                         formGroup.innerHTML = `
@@ -526,6 +545,39 @@
                 });
 
                 dynamicSections.appendChild(bunkeringSection);
+            }
+        }
+
+        function generateRandomWeatherData(field) {
+            switch (field) {
+                case 'Wind Direction (degrees)':
+                    return Math.floor(Math.random() * 360);
+                case 'Wind Speed (knots)':
+                    return (Math.random() * 50).toFixed(1);
+                case 'Wind Force (Beaufort)':
+                    return Math.floor(Math.random() * 12);
+                case 'Sea State Direction (degrees)':
+                    return Math.floor(Math.random() * 360);
+                case 'Sea State Force (Douglas scale)':
+                    return Math.floor(Math.random() * 9);
+                case 'Sea State Period (seconds)':
+                    return (Math.random() * 20 + 5).toFixed(1);
+                case 'Swell Direction (degrees)':
+                    return Math.floor(Math.random() * 360);
+                case 'Swell Height (meters)':
+                    return (Math.random() * 5).toFixed(1);
+                case 'Swell Period (seconds)':
+                    return (Math.random() * 20 + 5).toFixed(1);
+                case 'Current Direction (degrees)':
+                    return Math.floor(Math.random() * 360);
+                case 'Current Speed (knots)':
+                    return (Math.random() * 5).toFixed(1);
+                case 'Air Temperature (°C)':
+                    return (Math.random() * 35 + 5).toFixed(1);
+                case 'Sea Temperature (°C)':
+                    return (Math.random() * 30 + 10).toFixed(1);
+                default:
+                    return '';
             }
         }
 
@@ -661,7 +713,7 @@
             const reportData = Object.fromEntries(formData.entries());
             console.log("Submitting report:", reportData);
             
-            addChatbotMessage("Report submitted successfully! Here's a summary of your report:");
+            addChatbotMessage("All Data validated. Form submitted.");
             for (const [key, value] of Object.entries(reportData)) {
                 addChatbotMessage(`${key}: ${value}`);
             }
