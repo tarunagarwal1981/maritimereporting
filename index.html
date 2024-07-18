@@ -435,7 +435,10 @@
                 if (typeof fields === 'object' && !Array.isArray(fields)) {
                     if (fields[vesselType]) {
                         sectionFields = fields[vesselType];
-                    } else if (section !== "Cargo" && section !== "Fuel Consumption" && section !== "Fuel Allocation") {
+                    } else if (section === "Cargo" || section === "Fuel Consumption" || section === "Fuel Allocation") {
+                // If it's a vessel-specific section but the vessel type doesn't match, skip this section
+                        continue;
+                    } else {
                         sectionFields = fields;
                     }
                 } else {
