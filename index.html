@@ -442,7 +442,7 @@
                     sectionFields = fields;
                 }
 
-                if (sectionFields && Object.keys(sectionFields).length > 0) {
+                if (sectionFields && sectionFields.length > 0) {
                     const sectionDiv = document.createElement('div');
                     sectionDiv.classList.add('form-section');
                     sectionDiv.id = section.replace(/\s+/g, '-').toLowerCase();
