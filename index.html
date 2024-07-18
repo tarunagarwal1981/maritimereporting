@@ -11,8 +11,8 @@
             padding: 0;
             height: 100%;
             font-family: 'Roboto', sans-serif;
-            background-color: #f0f4f8;
-            color: #333;
+            background-color: #2c3e50;
+            color: #ecf0f1;
         }
         .container {
             display: flex;
@@ -22,21 +22,24 @@
             width: 70%;
             padding: 20px;
             overflow-y: auto;
-            background-color: white;
+            background-color: #34495e;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 8px;
         }
         .chatbot {
             width: 30%;
             display: flex;
             flex-direction: column;
-            background-color: #ffffff;
-            border-left: 1px solid #e0e0e0;
+            background-color: #34495e;
+            border-left: 1px solid #7f8c8d;
+            border-radius: 8px;
         }
         .chatbot-header {
             padding: 20px;
             background-color: #3498db;
             color: white;
             font-weight: 500;
+            border-radius: 8px 8px 0 0;
         }
         .chatbot-messages {
             flex-grow: 1;
@@ -45,18 +48,15 @@
         }
         .chatbot-input {
             padding: 20px;
-            border-top: 1px solid #e0e0e0;
+            border-top: 1px solid #7f8c8d;
         }
         .form-section {
             margin-bottom: 20px;
-            background-color: #f9f9f9;
+            background-color: #3b4a61;
             padding: 15px;
             border-radius: 8px;
             transition: all 0.3s ease;
-            border: 1px solid #e6e6e6;
-        }
-        .form-section.highlight {
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+            border: 1px solid #7f8c8d;
         }
         .form-section-header {
             cursor: pointer;
@@ -74,7 +74,7 @@
             margin-bottom: 15px;
         }
         .form-group {
-            flex: 1 1 30%;
+            flex: 1 1 22%;
             min-width: 200px;
             padding: 0 10px;
             margin-bottom: 15px;
@@ -83,7 +83,7 @@
             display: block;
             margin-bottom: 5px;
             font-weight: 500;
-            color: #2c3e50;
+            color: #ecf0f1;
         }
         .form-group input,
         .form-group textarea,
@@ -91,24 +91,28 @@
             width: 100%;
             padding: 8px;
             box-sizing: border-box;
-            border: 1px solid #bdc3c7;
+            border: 1px solid #3498db;
             border-radius: 4px;
             transition: border-color 0.3s ease;
             font-size: 14px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
         }
         .form-group input:focus,
         .form-group textarea:focus,
         .form-group select:focus {
-            border-color: #3498db;
+            border-color: #2980b9;
             outline: none;
         }
         #userInput {
             width: 100%;
             padding: 10px;
-            border: 1px solid #bdc3c7;
+            border: 1px solid #3498db;
             border-radius: 4px;
             box-sizing: border-box;
             font-size: 14px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
         }
         .chatbot-message {
             margin-bottom: 15px;
@@ -116,14 +120,15 @@
             border-radius: 5px;
             max-width: 80%;
             font-size: 14px;
+            color: #ecf0f1;
         }
         .user-message {
-            background-color: #e6f2ff;
+            background-color: #3498db;
             align-self: flex-end;
             margin-left: auto;
         }
         .bot-message {
-            background-color: #f0f0f0;
+            background-color: #3b4a61;
             align-self: flex-start;
         }
         button {
@@ -138,20 +143,6 @@
         }
         button:hover {
             background-color: #2980b9;
-        }
-        .field-prompt {
-            font-size: 11px;
-            color: #666;
-            margin-top: 2px;
-        }
-        .info-message {
-            font-size: 11px;
-            color: #0066cc;
-            background-color: #e6f2ff;
-            padding: 5px;
-            border-radius: 3px;
-            margin-top: 5px;
-            display: inline-block;
         }
     </style>
 </head>
@@ -463,12 +454,10 @@
                                 if (field.includes('Degrees')) value = randomPosition.latDeg;
                                 else if (field.includes('Minutes')) value = randomPosition.latMin;
                                 else if (field.includes('Direction')) value = randomPosition.latDir;
-                                infoMessage = 'Current AIS position';
                             } else if (section === 'Position' && field.includes('Longitude')) {
                                 if (field.includes('Degrees')) value = randomPosition.longDeg;
                                 else if (field.includes('Minutes')) value = randomPosition.longMin;
                                 else if (field.includes('Direction')) value = randomPosition.longDir;
-                                infoMessage = 'Current AIS position';
                             } else if (field === 'Vessel Name') {
                                 value = randomVesselName;
                             } else if (field === 'Vessel IMO') {
@@ -481,13 +470,11 @@
                                 } else if (parentSection === 'Boilers') {
                                     value = generateRandomConsumption(1, 2);
                                 }
-                                infoMessage = 'MFM figures since last report';
                             }
 
                             formGroup.innerHTML = `
                                 <label for="${fieldId}">${field}:</label>
                                 <input type="text" id="${fieldId}" name="${field}" value="${value}">
-                                ${infoMessage ? `<div class="info-message">${infoMessage}</div>` : ''}
                             `;
                             formRow.appendChild(formGroup);
                         });
