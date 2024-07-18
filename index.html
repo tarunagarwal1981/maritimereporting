@@ -50,6 +50,7 @@
         }
         .chatbot-input {
             padding: 20px;
+            background-color: #114065;
             border-top: 1px solid #34495e;
         }
         .form-section {
@@ -113,7 +114,7 @@
             border-radius: 4px;
             box-sizing: border-box;
             font-size: 14px;
-            background-color: #1c2534;
+            background-color: #114065;
             color: #F4F4F4;
         }
         .chatbot-message {
@@ -132,8 +133,16 @@
             background-color: #2c3e50;
             align-self: flex-start;
         }
+        .caution-message {
+            background-color: #00AAFF;
+            color: #1c2534;
+            padding: 5px;
+            border-radius: 4px;
+            margin-top: 5px;
+            display: inline-block;
+        }
         button {
-            background-color: #3498db;
+            background-color: #19364D;
             color: white;
             padding: 10px 20px;
             border: none;
@@ -153,6 +162,10 @@
             border-radius: 3px;
             margin-top: 5px;
             display: inline-block;
+        }
+        h2 {
+            font-family: 'Segoe UI Semibold', sans-serif;
+            color: #AAB7C4;
         }
     </style>
 </head>
@@ -181,7 +194,10 @@
             "Vessel Data": ["Vessel Name", "Vessel IMO", "Vessel Type"],
             "Voyage Data": ["Local Date", "Local Time", "UTC Offset", "Voyage ID", "Segment ID", "From Port", "To Port"],
             "Event Data": ["Event Type", "Sailing Time (hours)", "Ice Time (hours)", "Drifting (hours)"],
-            "Position": ["Latitude Degrees", "Latitude Minutes", "Latitude Direction", "Longitude Degrees", "Longitude Minutes", "Longitude Direction"],
+            "Position": [
+                ["Latitude Degrees", "Latitude Minutes", "Latitude Direction"],
+                ["Longitude Degrees", "Longitude Minutes", "Longitude Direction"]
+            ],
             "Cargo": {
                 "Oil Tanker": ["Cargo Weight (mt)"],
                 "LPG Tanker": ["Cargo Volume (m3)"],
@@ -304,6 +320,7 @@
         let currentFieldIndex = 0;
         let conversationState = 'select_report_type';
         let userExpandedSections = new Set();
+        let validationPassed = true;
 
         const chatbotContainer = document.getElementById('chatMessages');
 
@@ -335,10 +352,14 @@
             }
         }
 
-        function addChatbotMessage(message, isUser = false) {
+        function addChatbotMessage(message, isUser = false, isCaution = false) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('chatbot-message');
-            messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+            if (isCaution) {
+                messageDiv.classList.add('caution-message');
+            } else {
+                messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+            }
             messageDiv.innerHTML = `<p>${isUser ? '<strong>You:</strong> ' : '<strong>AI Assistant:</strong> '}${message}</p>`;
             chatbotContainer.appendChild(messageDiv);
             chatbotContainer.scrollTop = chatbotContainer.scrollHeight;
@@ -367,17 +388,39 @@
                         addChatbotMessage("I didn't recognize that report type. Please choose from the list of report types I provided earlier.");
                     }
                 } else if (conversationState === 'filling_form') {
-                    if (userInput.toLowerCase() === 'null') {
-                        addChatbotMessage(`Skipping ${currentField}.`);
-                    } else {
-                        fillFormField(currentField, userInput);
+                    handleFieldValidation(currentField, userInput);
+                    if (!validationPassed) {
+                        addChatbotMessage(`This does not pass the validation test. The value should be less than or equal to ${getValidationThreshold(currentField)}. Do you still want to go with value more than ${getValidationThreshold(currentField)}?`, false, true);
+                        validationPassed = true;
+                        return;
                     }
+                    fillFormField(currentField, userInput);
                     askNextField();
                 }
             } catch (error) {
                 console.error("Error in handleUserInput:", error);
                 addChatbotMessage("I'm experiencing some technical difficulties. Please try again later.");
             }
+        }
+
+        function handleFieldValidation(field, value) {
+            const threshold = getValidationThreshold(field);
+            if (threshold && parseFloat(value) > threshold) {
+                validationPassed = false;
+            } else {
+                validationPassed = true;
+            }
+        }
+
+        function getValidationThreshold(field) {
+            if (field.includes('Main Engine')) {
+                return 25;
+            } else if (field.includes('Auxiliary Engines')) {
+                return 6;
+            } else if (field.includes('Aux Boilers')) {
+                return 3;
+            }
+            return null;
         }
 
         function generateRandomLatLong() {
@@ -419,7 +462,9 @@
                 const fields = SECTION_FIELDS[section];
                 let sectionFields = [];
 
-                if (typeof fields === 'object' && !Array.isArray(fields)) {
+                if (Array.isArray(fields) && Array.isArray(fields[0])) {
+                    sectionFields = fields;
+                } else if (typeof fields === 'object' && !Array.isArray(fields)) {
                     if (fields[vesselType]) {
                         sectionFields = fields[vesselType];
                     } else if (section !== "Cargo" && section !== "Fuel Consumption" && section !== "Fuel Allocation") {
@@ -497,7 +542,43 @@
                         });
                     };
 
-                    if (Array.isArray(sectionFields)) {
+                    if (Array.isArray(sectionFields) && Array.isArray(sectionFields[0])) {
+                        sectionFields.forEach((fieldGroup) => {
+                            const formRow = document.createElement('div');
+                            formRow.classList.add('form-row');
+                            fieldGroup.forEach((field) => {
+                                const formGroup = document.createElement('div');
+                                formGroup.classList.add('form-group');
+                                const fieldId = field.replace(/\s+/g, '-').toLowerCase();
+                                let value = '';
+                                let infoMessage = '';
+
+                                if (section === 'Position' && field.includes('Latitude')) {
+                                    if (field.includes('Degrees')) value = randomPosition.latDeg;
+                                    else if (field.includes('Minutes')) value = randomPosition.latMin;
+                                    else if (field.includes('Direction')) value = randomPosition.latDir;
+                                    if (field.includes('Direction')) {
+                                        infoMessage = 'Current AIS position data';
+                                    }
+                                } else if (section === 'Position' && field.includes('Longitude')) {
+                                    if (field.includes('Degrees')) value = randomPosition.longDeg;
+                                    else if (field.includes('Minutes')) value = randomPosition.longMin;
+                                    else if (field.includes('Direction')) value = randomPosition.longDir;
+                                    if (field.includes('Direction')) {
+                                        infoMessage = 'Current AIS position data';
+                                    }
+                                }
+
+                                formGroup.innerHTML = `
+                                    <label for="${fieldId}">${field}:</label>
+                                    <input type="text" id="${fieldId}" name="${field}" value="${value}">
+                                    ${infoMessage ? `<div class="highlight-message">${infoMessage}</div>` : ''}
+                                `;
+                                formRow.appendChild(formGroup);
+                            });
+                            sectionContent.appendChild(formRow);
+                        });
+                    } else if (Array.isArray(sectionFields)) {
                         createFields(sectionFields, section);
                     } else {
                         for (const subsection in sectionFields) {
@@ -603,7 +684,7 @@
             fillFormField('To Port', toPort);
 
             fillFormField('Event Type', currentReportType);
-            fillFormField('Sailing Time (hours)', 16.5);
+            fillFormField('Sailing Time (hours)', '16.5');
         }
 
         function fillFormField(field, value) {
@@ -620,7 +701,9 @@
                 currentSection = sections[currentSectionIndex];
                 let fields = SECTION_FIELDS[currentSection];
                 
-                if (typeof fields === 'object' && !Array.isArray(fields)) {
+                if (Array.isArray(fields) && Array.isArray(fields[0])) {
+                    fields = fields.flat();
+                } else if (typeof fields === 'object' && !Array.isArray(fields)) {
                     fields = fields[currentVesselType] || Object.values(fields).flat();
                 }
 
