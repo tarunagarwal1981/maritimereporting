@@ -182,8 +182,8 @@
             "Event Data": ["Event Type", "Time Elapsed (hours)", "Sailing Time (hours)", "Anchor Time (hours)", "Ice Time (hours)", "Maneuvering (hours)", "Loading/Unloading (hours)", "Drifting (hours)"],
             "Position": ["Latitude Degrees", "Latitude Minutes", "Latitude Direction", "Longitude Degrees", "Longitude Minutes", "Longitude Direction"],
             "Cargo": {
-                "LPG Tanker": ["Cargo Volume (m3)"],
                 "Oil Tanker": ["Cargo Weight (mt)"],
+                "LPG Tanker": ["Cargo Volume (m3)"],
                 "LNG Tanker": ["Cargo Volume (m3)"]
             },
             "Fuel Consumption": {
@@ -298,13 +298,13 @@
             "Other event", "Bunkering"
         ];
 
-        let currentVesselType = '';
+        let currentVesselType = 'LPG Tanker';
         let currentReportType = '';
         let currentSection = '';
         let currentField = '';
         let currentSectionIndex = 0;
         let currentFieldIndex = 0;
-        let conversationState = 'start';
+        let conversationState = 'select_report_type';
         let userExpandedSections = new Set();
 
         const chatbotContainer = document.getElementById('chatMessages');
@@ -355,18 +355,7 @@
             }
 
             try {
-                if (conversationState === 'start') {
-                    const vesselTypes = ["Container vessel", "Bulk Carrier", "Oil Tanker", "LPG tanker", "LNG tanker"];
-                    const matchedVesselType = vesselTypes.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
-                    if (matchedVesselType) {
-                        currentVesselType = matchedVesselType;
-                        generateFormFields(currentVesselType);
-                        conversationState = 'select_report_type';
-                        addChatbotMessage(`Great! You've selected ${currentVesselType}. Now, please specify the type of report you'd like to create.`);
-                    } else {
-                        addChatbotMessage("I didn't recognize that vessel type. Please choose from Container vessel, Bulk Carrier, Oil Tanker, LPG tanker, or LNG tanker.");
-                    }
-                } else if (conversationState === 'select_report_type') {
+                if (conversationState === 'select_report_type') {
                     const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
                     if (matchedReportType) {
                         currentReportType = matchedReportType;
@@ -421,119 +410,147 @@
         }
 
         function generateFormFields(vesselType) {
-    console.log(`Generating form fields for vessel type: ${vesselType}`);
-    const dynamicSections = document.getElementById('dynamicSections');
-    dynamicSections.innerHTML = '';
+            const dynamicSections = document.getElementById('dynamicSections');
+            dynamicSections.innerHTML = '';
 
-    const randomPosition = generateRandomLatLong();
-    const randomVesselName = generateRandomVesselName();
-    const randomIMO = generateRandomIMO();
+            const randomPosition = generateRandomLatLong();
+            const randomVesselName = generateRandomVesselName();
+            const randomIMO = generateRandomIMO();
 
-    for (const sectionName in SECTION_FIELDS) {
-        console.log(`Processing section: ${sectionName}`);
-        const sectionData = SECTION_FIELDS[sectionName];
-        
-        const sectionDiv = document.createElement('div');
-        sectionDiv.classList.add('form-section');
-        sectionDiv.id = sectionName.replace(/\s+/g, '-').toLowerCase();
-        
-        const sectionHeader = document.createElement('div');
-        sectionHeader.classList.add('form-section-header');
-        sectionHeader.innerHTML = `<h3>${sectionName}</h3>`;
-        sectionHeader.addEventListener('click', () => toggleSection(sectionDiv));
-        
-        const sectionContent = document.createElement('div');
-        sectionContent.classList.add('form-section-content');
+            for (const section in SECTION_FIELDS) {
+                const fields = SECTION_FIELDS[section];
+                let sectionFields = [];
 
-        sectionDiv.appendChild(sectionHeader);
-        sectionDiv.appendChild(sectionContent);
-
-        let fieldsToRender;
-
-        if (sectionName === "Cargo" || sectionName === "Fuel Consumption" || sectionName === "Fuel Allocation") {
-            fieldsToRender = sectionData[vesselType] || {};
-            console.log(`Vessel-specific section ${sectionName} for ${vesselType}:`, fieldsToRender);
-        } else {
-            fieldsToRender = sectionData;
-        }
-
-        renderFields(sectionContent, fieldsToRender, sectionName);
-
-        if (sectionContent.children.length > 0) {
-            dynamicSections.appendChild(sectionDiv);
-        } else {
-            console.log(`No fields rendered for section: ${sectionName}`);
-        }
-    }
-
-    console.log('Form field generation complete');
-
-    function renderFields(container, fields, parentSection) {
-        if (Array.isArray(fields)) {
-            renderFieldArray(container, fields, parentSection);
-        } else if (typeof fields === 'object' && fields !== null) {
-            for (const subsection in fields) {
-                const subsectionDiv = document.createElement('div');
-                subsectionDiv.innerHTML = `<h4>${subsection}</h4>`;
-                container.appendChild(subsectionDiv);
-                renderFieldArray(container, fields[subsection], subsection);
-            }
-        } else {
-            console.log(`Unexpected field type in ${parentSection}:`, fields);
-        }
-    }
-
-    function renderFieldArray(container, fields, parentSection) {
-        console.log(`Rendering fields for ${parentSection}:`, fields);
-        let formRow;
-        fields.forEach((field, index) => {
-            if (index % 3 === 0) {
-                formRow = document.createElement('div');
-                formRow.classList.add('form-row');
-                container.appendChild(formRow);
-            }
-
-            const formGroup = document.createElement('div');
-            formGroup.classList.add('form-group');
-            const fieldId = field.replace(/\s+/g, '-').toLowerCase();
-            let value = '';
-            let infoMessage = '';
-
-            // Populate default values and info messages
-            if (parentSection === 'Position' && field.includes('Latitude')) {
-                if (field.includes('Degrees')) value = randomPosition.latDeg;
-                else if (field.includes('Minutes')) value = randomPosition.latMin;
-                else if (field.includes('Direction')) value = randomPosition.latDir;
-                infoMessage = 'Current AIS position';
-            } else if (parentSection === 'Position' && field.includes('Longitude')) {
-                if (field.includes('Degrees')) value = randomPosition.longDeg;
-                else if (field.includes('Minutes')) value = randomPosition.longMin;
-                else if (field.includes('Direction')) value = randomPosition.longDir;
-                infoMessage = 'Current AIS position';
-            } else if (field === 'Vessel Name') {
-                value = randomVesselName;
-            } else if (field === 'Vessel IMO') {
-                value = randomIMO;
-            } else if (field.includes('LFO')) {
-                if (parentSection === 'Main Engine') {
-                    value = generateRandomConsumption(20, 25);
-                } else if (parentSection === 'Auxiliary Engines') {
-                    value = generateRandomConsumption(2, 3);
-                } else if (parentSection === 'Boilers') {
-                    value = generateRandomConsumption(1, 2);
+                if (typeof fields === 'object' && !Array.isArray(fields)) {
+                    if (fields[vesselType]) {
+                        sectionFields = fields[vesselType];
+                    } else if (section !== "Cargo" && section !== "Fuel Consumption" && section !== "Fuel Allocation") {
+                        sectionFields = fields;
+                    }
+                } else {
+                    sectionFields = fields;
                 }
-                infoMessage = 'MFM figures since last report';
+
+                if (sectionFields && Object.keys(sectionFields).length > 0) {
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.classList.add('form-section');
+                    sectionDiv.id = section.replace(/\s+/g, '-').toLowerCase();
+                    
+                    const sectionHeader = document.createElement('div');
+                    sectionHeader.classList.add('form-section-header');
+                    sectionHeader.innerHTML = `<h3>${section}</h3>`;
+                    sectionHeader.addEventListener('click', () => toggleSection(sectionDiv));
+                    
+                    const sectionContent = document.createElement('div');
+                    sectionContent.classList.add('form-section-content');
+
+                    sectionDiv.appendChild(sectionHeader);
+                    sectionDiv.appendChild(sectionContent);
+
+                    const createFields = (fields, parentSection) => {
+                        let formRow;
+                        fields.forEach((field, index) => {
+                            if (index % 3 === 0) {
+                                formRow = document.createElement('div');
+                                formRow.classList.add('form-row');
+                                sectionContent.appendChild(formRow);
+                            }
+
+                            const formGroup = document.createElement('div');
+                            formGroup.classList.add('form-group');
+                            const fieldId = field.replace(/\s+/g, '-').toLowerCase();
+                            let value = '';
+                            let infoMessage = '';
+
+                            if (section === 'Position' && field.includes('Latitude')) {
+                                if (field.includes('Degrees')) value = randomPosition.latDeg;
+                                else if (field.includes('Minutes')) value = randomPosition.latMin;
+                                else if (field.includes('Direction')) value = randomPosition.latDir;
+                                infoMessage = 'Current AIS position';
+                            } else if (section === 'Position' && field.includes('Longitude')) {
+                                if (field.includes('Degrees')) value = randomPosition.longDeg;
+                                else if (field.includes('Minutes')) value = randomPosition.longMin;
+                                else if (field.includes('Direction')) value = randomPosition.longDir;
+                                infoMessage = 'Current AIS position';
+                            } else if (field === 'Vessel Name') {
+                                value = randomVesselName;
+                            } else if (field === 'Vessel IMO') {
+                                value = randomIMO;
+                            } else if (field.includes('LFO')) {
+                                if (parentSection === 'Main Engine') {
+                                    value = generateRandomConsumption(20, 25);
+                                } else if (parentSection === 'Auxiliary Engines') {
+                                    value = generateRandomConsumption(2, 3);
+                                } else if (parentSection === 'Boilers') {
+                                    value = generateRandomConsumption(1, 2);
+                                }
+                                infoMessage = 'MFM figures since last report';
+                            }
+
+                            formGroup.innerHTML = `
+                                <label for="${fieldId}">${field}:</label>
+                                <input type="text" id="${fieldId}" name="${field}" value="${value}">
+                                ${infoMessage ? `<div class="info-message">${infoMessage}</div>` : ''}
+                            `;
+                            formRow.appendChild(formGroup);
+                        });
+                    };
+
+                    if (Array.isArray(sectionFields)) {
+                        createFields(sectionFields, section);
+                    } else {
+                        for (const subsection in sectionFields) {
+                            const subsectionDiv = document.createElement('div');
+                            subsectionDiv.innerHTML = `<h4>${subsection}</h4>`;
+                            sectionContent.appendChild(subsectionDiv);
+                            createFields(sectionFields[subsection], subsection);
+                        }
+                    }
+
+                    dynamicSections.appendChild(sectionDiv);
+                }
             }
 
-            formGroup.innerHTML = `
-                <label for="${fieldId}">${field}:</label>
-                <input type="text" id="${fieldId}" name="${field}" value="${value}">
-                ${infoMessage ? `<div class="info-message">${infoMessage}</div>` : ''}
-            `;
-            formRow.appendChild(formGroup);
-        });
-    }
-}
+            // Add Bunkering section only if it's a Bunkering report
+            if (currentReportType.toLowerCase() === 'bunkering') {
+                const bunkeringSection = document.createElement('div');
+                bunkeringSection.classList.add('form-section');
+                bunkeringSection.id = 'bunkering';
+                
+                const sectionHeader = document.createElement('div');
+                sectionHeader.classList.add('form-section-header');
+                sectionHeader.innerHTML = `<h3>Bunkering</h3>`;
+                sectionHeader.addEventListener('click', () => toggleSection(bunkeringSection));
+                
+                const sectionContent = document.createElement('div');
+                sectionContent.classList.add('form-section-content');
+
+                bunkeringSection.appendChild(sectionHeader);
+                bunkeringSection.appendChild(sectionContent);
+
+                let formRow;
+                BUNKERING_FIELDS.forEach((field, index) => {
+                    if (index % 3 === 0) {
+                        formRow = document.createElement('div');
+                        formRow.classList.add('form-row');
+                        sectionContent.appendChild(formRow);
+                    }
+
+                    const formGroup = document.createElement('div');
+                    formGroup.classList.add('form-group');
+                    const fieldId = field.replace(/\s+/g, '-').toLowerCase();
+
+                    formGroup.innerHTML = `
+                        <label for="${fieldId}">${field}:</label>
+                        <input type="text" id="${fieldId}" name="${field}">
+                    `;
+                    formRow.appendChild(formGroup);
+                });
+
+                dynamicSections.appendChild(bunkeringSection);
+            }
+        }
+
         function toggleSection(section) {
             section.classList.toggle('expanded');
             if (section.classList.contains('expanded')) {
@@ -666,8 +683,8 @@
 
         function initApp() {
             console.log("Initializing application...");
-            conversationState = 'start';
-            currentVesselType = '';
+            conversationState = 'select_report_type';
+            currentVesselType = 'LPG Tanker';
             currentReportType = '';
             currentSection = '';
             currentField = '';
@@ -676,7 +693,7 @@
             userExpandedSections.clear();
             document.getElementById('dynamicSections').innerHTML = '';
             document.getElementById('chatMessages').innerHTML = '';
-            addChatbotMessage("Welcome to NaVya, your maritime reporting assistant! I'm here to help you create a report. Please tell me the type of vessel you're reporting for (Container vessel, Bulk Carrier, Oil Tanker, LPG tanker, or LNG tanker).");
+            addChatbotMessage("Welcome to NaVya, your maritime reporting assistant! We are generating a report for an LPG tanker. Please specify the type of report you'd like to create.");
         }
 
         document.getElementById('userInput').addEventListener('keypress', async function(event) {
