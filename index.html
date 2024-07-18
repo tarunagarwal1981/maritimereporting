@@ -40,6 +40,10 @@
             font-weight: 600;
             font-family: 'Segoe UI Semibold', sans-serif;
         }
+        .chatbot-header h2 {
+            font-size: 24px;
+            margin: 0;
+        }
         .chatbot-messages {
             flex-grow: 1;
             overflow-y: auto;
@@ -194,16 +198,19 @@
         const SECTION_FIELDS = {
             "Vessel Data": ["Vessel Name", "Vessel IMO", "Vessel Type"],
             "Voyage Data": ["Local Date", "Local Time", "UTC Offset", "Voyage ID", "Segment ID", "From Port", "To Port"],
-            "Event Data": ["Event Type", "Sailing Time (hours)", "Ice Time (hours)", "Drifting (hours)"],
-            "Position": ["Latitude Degrees", "Latitude Minutes", "Latitude Direction", "Longitude Degrees", "Longitude Minutes", "Longitude Direction"],
+            "Event Data": [["Event Type", "Sailing Time (hours)", "Ice Time (hours)", "Drifting (hours)"]],
+            "Position": [
+                ["Latitude Degrees", "Latitude Minutes", "Latitude Direction"],
+                ["Longitude Degrees", "Longitude Minutes", "Longitude Direction"]
+            ],
             "Cargo": {
                 "LPG Tanker": ["Cargo Volume (m3)"]
             },
             "Fuel Consumption": {
                 "LPG Tanker": {
-                    "Main Engine": ["ME LFO (mt)", "ME MGO (mt)", "ME LPG Propane (mt)", "ME LPG Butane (mt)"],
-                    "Auxiliary Engines": ["AE LFO (mt)", "AE MGO (mt)", "AE LPG Propane (mt)", "AE LPG Butane (mt)"],
-                    "Aux Boilers": ["Aux Boiler LFO (mt)", "Aux Boiler MGO (mt)"],
+                    "Main Engine": [["ME LFO (mt)", "ME MGO (mt)", "ME LPG Propane (mt)", "ME LPG Butane (mt)"]],
+                    "Auxiliary Engines": [["AE LFO (mt)", "AE MGO (mt)", "AE LPG Propane (mt)", "AE LPG Butane (mt)"]],
+                    "Aux Boilers": [["Aux Boiler LFO (mt)", "Aux Boiler MGO (mt)"]],
                     "IGG": ["IGG MGO (mt)"],
                     "Incinerator": ["Incinerator MGO (mt)"]
                 }
@@ -212,13 +219,12 @@
             "Fuel Allocation": {
                 "LPG Tanker": {
                     "Cargo Cooling": [
-                        "Cargo Cooling LFO (mt)", "Cargo Cooling MGO (mt)", "Cargo Cooling LPG Propane (mt)", "Cargo Cooling LPG Butane (mt)",
-                        "Cargo Cooling Work (kWh)", "Cargo Cooling SFOC (g/kWh)"
+                        ["Cargo Cooling LFO (mt)", "Cargo Cooling MGO (mt)", "Cargo Cooling LPG Propane (mt)", "Cargo Cooling LPG Butane (mt)"],
+                        ["Cargo Cooling Work (kWh)", "Cargo Cooling SFOC (g/kWh)"]
                     ],
                     "Discharge Pump": [
-                        "Discharge Pump LFO (mt)", "Discharge Pump MGO (mt)",
-                        "Discharge Pump LPG Propane (mt)", "Discharge Pump LPG Butane (mt)",
-                        "Discharge Pump Work (kWh)", "Discharge Pump SFOC (g/kWh)"
+                        ["Discharge Pump LFO (mt)", "Discharge Pump MGO (mt)", "Discharge Pump LPG Propane (mt)", "Discharge Pump LPG Butane (mt)"],
+                        ["Discharge Pump Work (kWh)", "Discharge Pump SFOC (g/kWh)"]
                     ],
                     "Shore-Side Electricity": ["Shore-Side Electricity Work (kWh)"]
                 }
@@ -279,34 +285,6 @@
 
         const chatbotContainer = document.getElementById('chatMessages');
 
-        async function getOpenAIResponse(prompt) {
-            try {
-                const response = await fetch('/.netlify/functions/openai-proxy', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ messages: [{ role: "user", content: prompt }] })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log("Received response from OpenAI API:", data);
-
-                if (!data.choices || data.choices.length === 0) {
-                    throw new Error('No response from OpenAI API');
-                }
-
-                return data.choices[0].message.content;
-            } catch (error) {
-                console.error("Error in OpenAI API call:", error);
-                throw error;
-            }
-        }
-
         function addChatbotMessage(message, isUser = false, isCaution = false) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('chatbot-message');
@@ -332,7 +310,7 @@
                     const matchedReportType = REPORT_TYPES.find(type => userInput.toLowerCase().includes(type.toLowerCase()));
                     if (matchedReportType) {
                         currentReportType = matchedReportType;
-                        generateFormFields(currentVesselType); // Regenerate form fields to include/exclude Bunkering section
+                        generateFormFields(currentVesselType);
                         fillInitialFormFields();
                         conversationState = 'filling_form';
                         currentSectionIndex = 0;
@@ -344,14 +322,21 @@
                 } else if (conversationState === 'filling_form') {
                     if (userInput.toLowerCase() === 'null') {
                         addChatbotMessage(`Skipping ${currentField}.`);
+                        askNextField();
                     } else {
-                        const parentSection = document.getElementById(currentField.replace(/\s+/g, '-').toLowerCase()).parentElement.previousElementSibling.innerText;
-                        if (parentSection && parentSection.includes("Main Engine") && validationAttempts["Main Engine"] < 2) {
-                            validateFuelConsumption(userInput, 25, "Main Engine");
-                        } else if (parentSection && parentSection.includes("Auxiliary Engines") && validationAttempts["Auxiliary Engines"] < 2) {
-                            validateFuelConsumption(userInput, 6, "Auxiliary Engines");
-                        } else if (parentSection && parentSection.includes("Aux Boilers") && validationAttempts["Aux Boilers"] < 2) {
-                            validateFuelConsumption(userInput, 3, "Aux Boilers");
+                        const parentSection = document.getElementById(currentField.replace(/\s+/g, '-').toLowerCase()).closest('.form-section').querySelector('h3').textContent;
+                        if (parentSection === "Fuel Consumption") {
+                            const subSection = document.getElementById(currentField.replace(/\s+/g, '-').toLowerCase()).closest('div').previousElementSibling.textContent;
+                            if (subSection === "Main Engine" && validationAttempts["Main Engine"] < 2) {
+                                validateFuelConsumption(userInput, 25, "Main Engine");
+                            } else if (subSection === "Auxiliary Engines" && validationAttempts["Auxiliary Engines"] < 2) {
+                                validateFuelConsumption(userInput, 6, "Auxiliary Engines");
+                            } else if (subSection === "Aux Boilers" && validationAttempts["Aux Boilers"] < 2) {
+                                validateFuelConsumption(userInput, 3, "Aux Boilers");
+                            } else {
+                                fillFormField(currentField, userInput);
+                                askNextField();
+                            }
                         } else {
                             fillFormField(currentField, userInput);
                             askNextField();
@@ -440,46 +425,53 @@
                     sectionDiv.appendChild(sectionContent);
 
                     const createFields = (fields, parentSection) => {
-                        let formRow;
-                        fields.forEach((field, index) => {
-                            if (index % 4 === 0) {
-                                formRow = document.createElement('div');
+                        if (Array.isArray(fields[0])) {
+                            fields.forEach(row => {
+                                const formRow = document.createElement('div');
                                 formRow.classList.add('form-row');
+                                row.forEach(field => createField(field, formRow, parentSection));
                                 sectionContent.appendChild(formRow);
-                            }
+                            });
+                        } else {
+                            const formRow = document.createElement('div');
+                            formRow.classList.add('form-row');
+                            fields.forEach(field => createField(field, formRow, parentSection));
+                            sectionContent.appendChild(formRow);
+                        }
+                    };
 
-                            const formGroup = document.createElement('div');
-                            formGroup.classList.add('form-group');
-                            const fieldId = field.replace(/\s+/g, '-').toLowerCase();
-                            let value = '';
-                            let infoMessage = '';
+                    const createField = (field, formRow, parentSection) => {
+                        const formGroup = document.createElement('div');
+                        formGroup.classList.add('form-group');
+                        const fieldId = field.replace(/\s+/g, '-').toLowerCase();
+                        let value = '';
+                        let infoMessage = '';
 
-                            if (section === 'Position' && field.includes('Latitude')) {
-                                if (field.includes('Degrees')) value = randomPosition.latDeg;
-                                else if (field.includes('Minutes')) value = randomPosition.latMin;
-                                else if (field.includes('Direction')) value = randomPosition.latDir;
-                                infoMessage = 'Current AIS position data';
-                            } else if (section === 'Position' && field.includes('Longitude')) {
-                                if (field.includes('Degrees')) value = randomPosition.longDeg;
-                                else if (field.includes('Minutes')) value = randomPosition.longMin;
-                                else if (field.includes('Direction')) value = randomPosition.longDir;
-                                infoMessage = 'Current AIS position data';
-                            } else if (field === 'Vessel Name') {
-                                value = randomVesselName;
-                            } else if (field === 'Vessel IMO') {
-                                value = randomIMO;
-                            } else if (field.includes('LFO') && parentSection === 'Main Engine') {
-                                value = generateRandomConsumption(20, 25);
-                                infoMessage = 'MFM figures since last report';
-                            }
+                        if (section === 'Position' && field.includes('Latitude')) {
+                            if (field.includes('Degrees')) value = randomPosition.latDeg;
+                            else if (field.includes('Minutes')) value = randomPosition.latMin;
+                            else if (field.includes('Direction')) value = randomPosition.latDir;
+                            infoMessage = 'Current AIS position data';
+                        } else if (section === 'Position' && field.includes('Longitude')) {
+                            if (field.includes('Degrees')) value = randomPosition.longDeg;
+                            else if (field.includes('Minutes')) value = randomPosition.longMin;
+                            else if (field.includes('Direction')) value = randomPosition.longDir;
+                            infoMessage = 'Current AIS position data';
+                        } else if (field === 'Vessel Name') {
+                            value = randomVesselName;
+                        } else if (field === 'Vessel IMO') {
+                            value = randomIMO;
+                        } else if (field.includes('LFO') && parentSection === 'Main Engine') {
+                            value = generateRandomConsumption(20, 25);
+                            infoMessage = 'MFM figures since last report';
+                        }
 
-                            formGroup.innerHTML = `
-                                <label for="${fieldId}">${field}:</label>
-                                <input type="text" id="${fieldId}" name="${field}" value="${value}">
-                                ${infoMessage ? `<div class="highlight-message">${infoMessage}</div>` : ''}
-                            `;
-                            formRow.appendChild(formGroup);
-                        });
+                        formGroup.innerHTML = `
+                            <label for="${fieldId}">${field}:</label>
+                            <input type="text" id="${fieldId}" name="${field}" value="${value}">
+                            ${infoMessage ? `<div class="highlight-message">${infoMessage}</div>` : ''}
+                        `;
+                        formRow.appendChild(formGroup);
                     };
 
                     if (Array.isArray(sectionFields)) {
@@ -606,14 +598,20 @@
                 currentSection = sections[currentSectionIndex];
                 let fields = SECTION_FIELDS[currentSection];
                 
-                if (Array.isArray(fields) && Array.isArray(fields[0])) {
-                    fields = fields.flat();
-                } else if (typeof fields === 'object' && !Array.isArray(fields)) {
-                    fields = fields[currentVesselType] || Object.values(fields).flat();
+                if (typeof fields === 'object' && !Array.isArray(fields)) {
+                    fields = fields[currentVesselType] || {};
                 }
 
-                while (currentFieldIndex < fields.length) {
-                    currentField = fields[currentFieldIndex];
+                const flattenFields = (obj) => {
+                    return Object.values(obj).flat().flatMap(item => 
+                        Array.isArray(item) ? flattenFields(item) : item
+                    );
+                };
+
+                const flatFields = flattenFields(fields);
+
+                while (currentFieldIndex < flatFields.length) {
+                    currentField = flatFields[currentFieldIndex];
                     const fieldId = currentField.replace(/\s+/g, '-').toLowerCase();
                     const inputElement = document.getElementById(fieldId);
                     
@@ -663,7 +661,7 @@
             const reportData = Object.fromEntries(formData.entries());
             console.log("Submitting report:", reportData);
             
-            addChatbotMessage("All fields validated, form submitted.");
+            addChatbotMessage("Report submitted successfully! Here's a summary of your report:");
             for (const [key, value] of Object.entries(reportData)) {
                 addChatbotMessage(`${key}: ${value}`);
             }
