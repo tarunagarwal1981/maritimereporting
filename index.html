@@ -435,14 +435,16 @@
                 if (typeof fields === 'object' && !Array.isArray(fields)) {
                     if (fields[vesselType]) {
                         sectionFields = fields[vesselType];
-                    } else if (section !== "Cargo" && section !== "Fuel Consumption" && section !== "Fuel Allocation") {
-                        sectionFields = fields;
+                    } else if (Object.keys(fields).includes("Oil Tanker") && !fields[vesselType]) {
+                        sectionFields = [];
+                    } else {
+                        sectionFields = Object.values(fields).flat();
                     }
                 } else {
                     sectionFields = fields;
                 }
 
-                if (sectionFields && Object.keys(sectionFields).length > 0) {
+                if (sectionFields && sectionFields.length > 0) {
                     const sectionDiv = document.createElement('div');
                     sectionDiv.classList.add('form-section');
                     sectionDiv.id = section.replace(/\s+/g, '-').toLowerCase();
