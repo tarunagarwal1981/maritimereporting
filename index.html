@@ -64,9 +64,6 @@
             border: 1px solid #6E6E6E;
             box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
         }
-        .form-section.highlight {
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
-        }
         .form-section-header {
             cursor: pointer;
             user-select: none;
@@ -158,11 +155,6 @@
         button:hover {
             background-color: #114065;
         }
-        .field-prompt {
-            font-size: 11px;
-            color: #F4F4F4;
-            margin-top: 2px;
-        }
         .highlight-message {
             font-size: 11px;
             color: #00AAFF;
@@ -181,7 +173,6 @@
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 1000;
         }
-
         .popup-content {
             position: absolute;
             left: 50%;
@@ -208,10 +199,9 @@
             font-size: 16px;
             transition: background-color 0.3s ease;
         }
-
         .popup-content button:hover {
             background-color: #114065;
-        }     
+        }
     </style>
 </head>
 <body>
@@ -232,6 +222,13 @@
             <div class="chatbot-input">
                 <input id="userInput" type="text" placeholder="Type your message and press Enter">
             </div>
+        </div>
+    </div>
+
+    <div id="submitPopup" class="popup">
+        <div class="popup-content">
+            <p>All Data validated. Form submitted.</p>
+            <button id="popupOkButton">OK</button>
         </div>
     </div>
 
@@ -279,24 +276,6 @@
                 "Actual": ["Actual Forward Draft (m)", "Actual Aft Draft (m)", "Displacement (mt)", "Water Depth (m)"]
             }
         };
-
-        const BUNKERING_FIELDS = [
-            "Bunker Type",
-            "Quantity (mt)",
-            "Density at 15°C (kg/m3)",
-            "Viscosity at 50°C (cSt)",
-            "Flash Point (°C)",
-            "Sulphur Content (%)",
-            "Water Content (%)",
-            "Ash Content (%)",
-            "Vanadium (mg/kg)",
-            "Aluminium + Silicon (mg/kg)",
-            "Pour Point (°C)",
-            "Supplier Name",
-            "Delivery Date",
-            "Delivery Port",
-            "BDN Number"
-        ];
 
         const REPORT_TYPES = [
             "Arrival", "Departure", "Begin of offhire", "End of offhire", "Arrival STS", "Departure STS",
@@ -548,45 +527,6 @@
                     dynamicSections.appendChild(sectionDiv);
                 }
             }
-
-            // Add Bunkering section only if it's a Bunkering report
-            if (currentReportType.toLowerCase() === 'bunkering') {
-                const bunkeringSection = document.createElement('div');
-                bunkeringSection.classList.add('form-section');
-                bunkeringSection.id = 'bunkering';
-                
-                const sectionHeader = document.createElement('div');
-                sectionHeader.classList.add('form-section-header');
-                sectionHeader.innerHTML = `<h3>Bunkering</h3>`;
-                sectionHeader.addEventListener('click', () => toggleSection(bunkeringSection));
-                
-                const sectionContent = document.createElement('div');
-                sectionContent.classList.add('form-section-content');
-
-                bunkeringSection.appendChild(sectionHeader);
-                bunkeringSection.appendChild(sectionContent);
-
-                let formRow;
-                BUNKERING_FIELDS.forEach((field, index) => {
-                    if (index % 4 === 0) {
-                        formRow = document.createElement('div');
-                        formRow.classList.add('form-row');
-                        sectionContent.appendChild(formRow);
-                    }
-
-                    const formGroup = document.createElement('div');
-                    formGroup.classList.add('form-group');
-                    const fieldId = field.replace(/\s+/g, '-').toLowerCase();
-
-                    formGroup.innerHTML = `
-                        <label for="${fieldId}">${field}:</label>
-                        <input type="text" id="${fieldId}" name="${field}">
-                    `;
-                    formRow.appendChild(formGroup);
-                });
-
-                dynamicSections.appendChild(bunkeringSection);
-            }
         }
 
         function generateRandomWeatherData(field) {
@@ -720,22 +660,6 @@
                 currentFieldIndex = 0;
             }
 
-            // Check for Bunkering fields if it's a Bunkering report
-            if (currentReportType.toLowerCase() === 'bunkering' && currentSectionIndex === sections.length) {
-                while (currentFieldIndex < BUNKERING_FIELDS.length) {
-                    currentField = BUNKERING_FIELDS[currentFieldIndex];
-                    const fieldId = currentField.replace(/\s+/g, '-').toLowerCase();
-                    const inputElement = document.getElementById(fieldId);
-                    
-                    if (inputElement && !inputElement.value) {
-                        addChatbotMessage(`Please provide the ${currentField} (or type 'null' to skip):`);
-                        expandSection('bunkering');
-                        return;
-                    }
-                    currentFieldIndex++;
-                }
-            }
-
             addChatbotMessage("Great job! You've completed all the fields. Would you like to submit the report now?");
             conversationState = 'confirm_submit';
         }
@@ -753,19 +677,10 @@
             const formData = new FormData(document.getElementById('reportForm'));
             const reportData = Object.fromEntries(formData.entries());
             console.log("Submitting report:", reportData);
-    
-    // Show the popup
+            
             document.getElementById('submitPopup').style.display = 'block';
         }
 
-// Add this to your JavaScript
-        document.getElementById('popupOkButton').addEventListener('click', function() {
-            document.getElementById('submitPopup').style.display = 'none';
-            document.getElementById('reportForm').reset();
-            initApp();
-        });
-
-        
         function initApp() {
             console.log("Initializing application...");
             conversationState = 'select_report_type';
@@ -801,14 +716,13 @@
             addChatbotMessage("Draft saved successfully.");
         });
 
+        document.getElementById('popupOkButton').addEventListener('click', function() {
+            document.getElementById('submitPopup').style.display = 'none';
+            document.getElementById('reportForm').reset();
+            initApp();
+        });
+
         window.onload = initApp;
     </script>
-    <div id="submitPopup" class="popup">
-        <div class="popup-content">
-            <p>All Data validated. Form submitted.</p>
-            <button id="popupOkButton">OK</button>
-        </div>
-    </div>
-    
 </body>
-</html>
+</html>   
