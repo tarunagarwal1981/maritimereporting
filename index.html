@@ -352,7 +352,6 @@
                             const subSection = document.getElementById(currentField.replace(/\s+/g, '-').toLowerCase()).closest('div').previousElementSibling.textContent;
                             if (subSection === "Main Engine" && validationAttempts["Main Engine"] < 2) {
                                 validateFuelConsumption(userInput, 25, "Main Engine");
-                            } else if (subSection === "Auxiliary Engines" && validationAttempts["Auxiliary Engines"] < 2)
                             } else if (subSection === "Auxiliary Engines" && validationAttempts["Auxiliary Engines"] < 2) {
                                 validateFuelConsumption(userInput, 6, "Auxiliary Engines");
                             } else if (subSection === "Aux Boilers" && validationAttempts["Aux Boilers"] < 2) {
