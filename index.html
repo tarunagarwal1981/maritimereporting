@@ -171,6 +171,47 @@
             margin-top: 5px;
             display: inline-block;
         }
+        .popup {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .popup-content {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #2a3b4c;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        .popup-content p {
+            color: #F4F4F4;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .popup-content button {
+            background-color: #19364D;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .popup-content button:hover {
+            background-color: #114065;
+        }     
     </style>
 </head>
 <body>
@@ -712,17 +753,16 @@
             const formData = new FormData(document.getElementById('reportForm'));
             const reportData = Object.fromEntries(formData.entries());
             console.log("Submitting report:", reportData);
-            
-            addChatbotMessage("All Data validated. Form submitted.");
-            for (const [key, value] of Object.entries(reportData)) {
-                addChatbotMessage(`${key}: ${value}`);
-            }
+    
+    // Show the popup
+            document.getElementById('submitPopup').style.display = 'block';
+        }
+
+// Add this to your JavaScript
+        document.getElementById('popupOkButton').addEventListener('click', function() {
+            document.getElementById('submitPopup').style.display = 'none';
             document.getElementById('reportForm').reset();
             initApp();
-        }
-        document.getElementById('reportForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            submitReport();
         });
 
         
@@ -763,5 +803,12 @@
 
         window.onload = initApp;
     </script>
+    <div id="submitPopup" class="popup">
+        <div class="popup-content">
+            <p>All Data validated. Form submitted.</p>
+            <button id="popupOkButton">OK</button>
+        </div>
+    </div>
+    
 </body>
 </html>
